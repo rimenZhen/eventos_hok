@@ -1,8 +1,13 @@
 <template>
   <q-page v-if="negocio" padding>
     <q-img :src="imagenPortada" class="rounded-borders" style="max-height: 400px" />
-    <div class="q-mt-md">
+    <div class="row items-center q-mt-md">
       <div class="text-h4">{{ negocio.nombre_comercial }}</div>
+      <q-space />
+      <BotonFavorito v-if="auth.isLoggedIn && auth.rol === 'usuario_final'" tipo="negocio" :item="negocio" />
+      <BotonVisita v-if="auth.isLoggedIn && auth.rol === 'usuario_final'" tipo="negocio" :item="negocio" />
+    </div>
+    <div class="q-mt-md">
       <div class="text-subtitle1 text-grey">{{ negocio.municipio }}, {{ negocio.departamento }}</div>
       <p>{{ negocio.descripcion }}</p>
       <div><strong>Teléfono:</strong> {{ negocio.telefono }}</div>
@@ -65,7 +70,8 @@ import { useRoute } from 'vue-router'
 import { couch } from 'src/api/index'
 import { useAuthStore } from 'src/stores/auth'
 import FormularioResena from 'src/components/FormularioResena.vue'
-
+import BotonFavorito from 'src/components/BotonFavorito.vue'
+import BotonVisita from 'src/components/BotonVisita.vue'
 const route = useRoute()
 const auth = useAuthStore()
 const negocio = ref(null)

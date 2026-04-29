@@ -70,14 +70,17 @@ export const couch = {
   getImageUrl: (imgDocId, attachmentName) =>
     `${couchUrl}/${dbImages}/${encodeURIComponent(imgDocId)}/${encodeURIComponent(attachmentName)}`,
 
-  createImageDoc: (imgDocId, entidadTipo, entidadId) =>
-    couch.post(dbImages, {
+    createImageDoc: async (imgDocId, entidadTipo, entidadId) => {
+    const response = await couch.post(dbImages, {
       _id: imgDocId,
       type: 'imagen',
       entidad_tipo: entidadTipo,
       entidad_id: entidadId,
       attachments_meta: []
-    }),
+    })
+    // CouchDB POST devuelve { ok, id, rev }
+    return { _id: response.id, _rev: response.rev }
+  },
 
   uploadImage: async (imgDocId, rev, file) => {
     const url = `${couchUrl}/${dbImages}/${encodeURIComponent(imgDocId)}/${encodeURIComponent(file.name)}?rev=${rev}`
@@ -95,5 +98,35 @@ export const couch = {
       throw error
     }
     return res.json()
+  },
+  // Añadir dentro de 'couch' en src/api/index.js
+
+  // Subir una imagen para una entidad (evento, sitio, negocio, usuario)
+  // EntidadData: objeto con { _id, tipo (evento|sitio|negocio|usuario) }
+  // campo: nombre del campo donde se guarda el nombre del attachment (ej: 'imagen_portada')
+  async uploadEntityImage(entidadData, campo, file) {
+    const prefijo = { evento: 'evt_', sitio: 'sit_', negocio: 'neg_', usuario: 'usr_' }[entidadData.tipo]
+    if (!prefijo) throw new Error('Tipo de entidad no válido')
+    const imgDocId = prefijo + entidadData._id
+
+    // Obtener o crear documento en eventos_imagenes
+    let imgDoc
+    try {
+      imgDoc = await couch.get(dbImages, imgDocId)
+    } catch {
+      imgDoc = await couch.createImageDoc(imgDocId, entidadData.tipo, entidadData._id)
+    }
+
+    // Subir el archivo
+    await couch.uploadImage(imgDocId, imgDoc._rev, file)
+
+    // Actualizar el documento de la entidad en eventos_data con el nombre del attachment
+    const entidadDoc = await couch.get(import.meta.env.VITE_DB_DATA, entidadData._id)
+    entidadDoc[campo] = file.name
+    await couch.put(import.meta.env.VITE_DB_DATA, entidadDoc)
+
+    // Retornar la nueva revisión del documento de imagen por si se necesita para más subidas
+    const updatedImgDoc = await couch.get(dbImages, imgDocId)
+    return updatedImgDoc
   }
 }

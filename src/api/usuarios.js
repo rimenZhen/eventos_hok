@@ -9,24 +9,47 @@ export const usuariosAPI = {
     return couch.put(DB, doc)
   },
 
-  // Agregar un favorito (evento, sitio o negocio)
   async addFavorito(userId, tipo, item) {
-    const doc = await couch.get(DB, userId)
-    const detalle = doc.detalles?.detalle_usuario
-    if (!detalle) throw new Error('No es usuario final')
-    const campo =
-      tipo === 'evento'
-        ? 'eventos_guardados'
-        : tipo === 'sitio'
-          ? 'sitios_guardados'
-          : 'negocios_guardados'
-    const array = detalle[campo] || []
-    if (!array.find(i => i._id === item._id)) {
-      array.push(item)
-      detalle[campo] = array
-      await couch.put(DB, doc)
+  const doc = await couch.get(DB, userId)
+
+  // Asegurar que el documento tenga la estructura mínima para usuario_final
+  if (!doc.detalles) {
+    doc.detalles = {}
+  }
+  if (!doc.detalles.detalle_usuario) {
+    // Si no existe detalle_usuario, lo creamos vacío
+    doc.detalles.detalle_usuario = {
+      foto_perfil: '',
+      departamento_interes: '',
+      categorias_favoritas: [],
+      eventos_guardados: [],
+      sitios_guardados: [],
+      negocios_guardados: [],
+      historial_viajes: [],
+      reseñas: []
     }
-  },
+  }
+
+  const detalle = doc.detalles.detalle_usuario
+
+  const campo =
+    tipo === 'evento'
+      ? 'eventos_guardados'
+      : tipo === 'sitio'
+        ? 'sitios_guardados'
+        : 'negocios_guardados'
+
+  // Inicializar el array si no existe
+  if (!detalle[campo]) {
+    detalle[campo] = []
+  }
+
+  // Verificar si ya está en favoritos
+  if (!detalle[campo].some(i => i._id === item._id)) {
+    detalle[campo].push(item)
+    await couch.put(DB, doc)
+  }
+},
 
   // Eliminar un favorito por su ID
   async removeFavorito(userId, tipo, itemId) {

@@ -167,20 +167,24 @@ async function guardar() {
     }
 
     // Manejo de imagen de portada
-    if (portadaFile.value) {
+        if (portadaFile.value) {
       const imgDocId = 'sit_' + idSitio
       let imgDoc
       try {
+        // Intentamos obtener el documento de imagen existente
         imgDoc = await couch.get(import.meta.env.VITE_DB_IMAGES, imgDocId)
       } catch {
+        // Si no existe, lo creamos (sin attachments todavía)
         imgDoc = await couch.createImageDoc(imgDocId, 'sitio', idSitio)
       }
+
+      // Subir el archivo usando la revisión correcta
       await couch.uploadImage(imgDocId, imgDoc._rev, portadaFile.value)
 
-      // Actualizar campo imagen_portada en el sitio
-      const sitioDoc = await couch.get(import.meta.env.VITE_DB_DATA, idSitio)
-      sitioDoc.imagen_portada = portadaFile.value.name
-      await couch.put(import.meta.env.VITE_DB_DATA, sitioDoc)
+      // Actualizar el evento guardando el nombre del attachment
+      const eventoDoc = await couch.get(import.meta.env.VITE_DB_DATA, idSitio)
+      eventoDoc.imagen_portada = portadaFile.value.name
+      await couch.put(import.meta.env.VITE_DB_DATA, eventoDoc)
     }
 
     router.push('/alcaldia/sitios')

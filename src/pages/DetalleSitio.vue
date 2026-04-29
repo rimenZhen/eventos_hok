@@ -1,8 +1,13 @@
 <template>
   <q-page v-if="sitio" padding>
     <q-img :src="imagenPortada" class="rounded-borders" style="max-height: 400px" />
+    <div class="row items-center q-mt-md">
+      <div class="text-h4">{{ sitio.titulo }}</div>
+      <q-space />
+      <BotonFavorito v-if="auth.isLoggedIn && auth.rol === 'usuario_final'" tipo="sitio" :item="sitio" />
+      <BotonVisita v-if="auth.isLoggedIn && auth.rol === 'usuario_final'" tipo="sitio" :item="sitio" />
+    </div>
     <div class="q-mt-md">
-      <div class="text-h4">{{ sitio.nombre }}</div>
       <div class="text-subtitle1 text-grey">{{ sitio.municipio }}, {{ sitio.departamento }}</div>
       <p class="q-mt-sm">{{ sitio.descripcion }}</p>
       <!-- Galería de imágenes extra -->
@@ -70,7 +75,8 @@ import { couch } from 'src/api/index'
 import { useAuthStore } from 'src/stores/auth'
 import FormularioResena from 'src/components/FormularioResena.vue'
 import MapaMini from 'src/components/MapaMini.vue'
-
+import BotonFavorito from 'src/components/BotonFavorito.vue'
+import BotonVisita from 'src/components/BotonVisita.vue'
 const route = useRoute()
 const auth = useAuthStore()
 const sitio = ref(null)

@@ -89,12 +89,21 @@ async function guardar() {
       idEvento = response.id
     }
 
-    if (portadaFile.value) {
+        if (portadaFile.value) {
       const imgDocId = 'evt_' + idEvento
       let imgDoc
-      try { imgDoc = await couch.get(import.meta.env.VITE_DB_IMAGES, imgDocId) }
-      catch { imgDoc = await couch.createImageDoc(imgDocId, 'evento', idEvento) }
+      try {
+        // Intentamos obtener el documento de imagen existente
+        imgDoc = await couch.get(import.meta.env.VITE_DB_IMAGES, imgDocId)
+      } catch {
+        // Si no existe, lo creamos (sin attachments todavía)
+        imgDoc = await couch.createImageDoc(imgDocId, 'evento', idEvento)
+      }
+
+      // Subir el archivo usando la revisión correcta
       await couch.uploadImage(imgDocId, imgDoc._rev, portadaFile.value)
+
+      // Actualizar el evento guardando el nombre del attachment
       const eventoDoc = await couch.get(import.meta.env.VITE_DB_DATA, idEvento)
       eventoDoc.imagen_portada = portadaFile.value.name
       await couch.put(import.meta.env.VITE_DB_DATA, eventoDoc)
@@ -104,4 +113,6 @@ async function guardar() {
   } catch (e) { console.error(e) }
   finally { saving.value = false }
 }
+
+
 </script>
