@@ -77,21 +77,42 @@ const categoriaRaw = computed(() => {
   const cat = props.evento.categoria
   if (!cat) return ''
   if (typeof cat === 'string') return cat
-  return cat.nombre || cat.clave || ''
+  // Agregamos 'label' y 'value' para evitar errores si viene de un QSelect
+  return cat.label || cat.nombre || cat.value || cat.clave || ''
 })
 
 const categoriaInfo = computed(() => {
-  const clave = categoriaRaw.value.toLowerCase()
+  if (!categoriaRaw.value) return { nombre: 'Evento', color: 'grey' }
+
+  // Normalizar la clave para buscar en el mapa (minúsculas y sin espacios extra)
+  const clave = categoriaRaw.value.toLowerCase().trim()
+
+  // Mapa ampliado y unificado con los colores de TarjetaNegocio
   const map = {
     deportes: { nombre: 'Deportes', color: 'blue' },
-    gastronomia: { nombre: 'Gastronomía', color: 'green' },
+    gastronomia: { nombre: 'Gastronomía', color: 'deep-orange' },
     musica: { nombre: 'Música', color: 'purple' },
     cultura: { nombre: 'Cultura', color: 'teal' },
-    naturaleza: { nombre: 'Naturaleza', color: 'lime' },
+    naturaleza: { nombre: 'Naturaleza', color: 'green' },
     feria: { nombre: 'Feria', color: 'orange' },
-    religioso: { nombre: 'Religioso', color: 'indigo' }
+    religioso: { nombre: 'Religioso', color: 'indigo' },
+    artesanias: { nombre: 'Artesanías', color: 'brown' },
+    hospedaje: { nombre: 'Hospedaje', color: 'indigo' },
+    servicios: { nombre: 'Servicios', color: 'cyan' }
   }
-  return map[clave] || { nombre: categoriaRaw.value || 'Evento', color: 'grey' }
+
+  if (map[clave]) {
+    return map[clave]
+  }
+
+  // Fallback inteligente: si la categoría no está en el mapa,
+  // capitaliza la primera letra para que siempre se vea bien.
+  const nombreFormateado = categoriaRaw.value.charAt(0).toUpperCase() + categoriaRaw.value.slice(1).toLowerCase()
+
+  return {
+    nombre: nombreFormateado,
+    color: 'grey-8'
+  }
 })
 
 const nombreDepartamento = computed(() => {

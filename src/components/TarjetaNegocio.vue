@@ -78,10 +78,13 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { couch } from 'src/api/index'
 
 const props = defineProps({ negocio: Object })
+
+// Estado para guardar el documento de imágenes de este negocio específico
+const docImagenes = ref(null)
 
 // Función auxiliar para campos que pueden ser string u objeto
 function getDisplayField(field) {
@@ -93,12 +96,41 @@ function getDisplayField(field) {
   return String(field)
 }
 
-// Imagen de portada
 const imgDocId = computed(() => 'neg_' + props.negocio._id)
+
+// Función para cargar dinámicamente el documento de imágenes de esta tarjeta
+async function cargarImagenes() {
+  if (!props.negocio?._id) return
+
+  try {
+    // Busca el documento en la base de datos de imágenes
+    // (Asegúrate de que 'eventos_imagenes' sea el nombre correcto o usa tu variable de entorno)
+    docImagenes.value = await couch.get('eventos_imagenes', imgDocId.value)
+  } catch {
+    // Si falla (ej. error 404 porque aún no hay imágenes para este negocio),
+    // lo dejamos null silenciosamente para que actúe el fallback.
+    docImagenes.value = null
+  }
+}
+
+// Imagen de portada dinámica
 const imagenPortada = computed(() => {
+  if (!props.negocio) return 'https://via.placeholder.com/400x225?text=Negocio'
+
+  // 1. Si el negocio tiene una imagen definida explícitamente
   if (props.negocio.imagen_portada) {
     return couch.getImageUrl(imgDocId.value, props.negocio.imagen_portada)
   }
+
+  // 2. Si no, extraemos la primera imagen de los attachments del documento que consultamos
+  if (docImagenes.value && docImagenes.value._attachments) {
+    const nombresArchivos = Object.keys(docImagenes.value._attachments)
+    if (nombresArchivos.length > 0) {
+      return couch.getImageUrl(imgDocId.value, nombresArchivos[0])
+    }
+  }
+
+  // 3. Imagen por defecto si no hay ninguna
   return 'https://via.placeholder.com/400x225?text=Negocio'
 })
 
@@ -133,7 +165,7 @@ const direccionMostrada = computed(() => {
   return ''
 })
 
-// Horario resumido (mismo algoritmo anterior)
+// Horario resumido
 const horarioResumido = computed(() => {
   const h = props.negocio.horario
   if (!h) return null
@@ -174,6 +206,16 @@ const horarioResumido = computed(() => {
 })
 
 const cantidadResenas = computed(() => props.negocio.reseñas?.length || 0)
+
+// Cargar las imágenes al inicializar el componente
+onMounted(() => {
+  cargarImagenes()
+})
+
+// Por si la prop cambia dinámicamente sin recargar el componente completo
+watch(() => props.negocio._id, () => {
+  cargarImagenes()
+})
 </script>
 
 <style scoped>
