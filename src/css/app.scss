@@ -1,2 +1,26 @@
 // app global css in SCSS form
 @import 'leaflet/dist/leaflet.css';
+/* src/css/app.scss */
+:root {
+  --q-primary: #00d1b2; /* El verde turquesa de las imágenes */
+}
+
+.body--dark {
+  --q-dark-page: #121212;
+  --q-dark: #1d1d1d;
+}
+
+/* Estilo para los botones redondeados como en el mockup */
+.btn-rounded {
+  border-radius: 8px;
+}
+
+.card-custom {
+  border-radius: 16px;
+  overflow: hidden;
+  transition: transform 0.3s ease;
+}
+
+.card-custom:hover {
+  transform: translateY(-5px);
+}
