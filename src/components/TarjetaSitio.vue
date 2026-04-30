@@ -33,6 +33,8 @@
       </div>
     </q-card-section>
 
+    <q-space />
+
     <q-card-actions>
       <q-btn
         unelevated
@@ -82,3 +84,14 @@ const descripcionCorta = computed(() => {
 
 const cantidadResenas = computed(() => props.sitio.reseñas?.length || 0)
 </script>
+
+<style scoped>
+.card-custom {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.btn-rounded {
+  border-radius: 8px;
+}
+</style>

@@ -9,6 +9,16 @@
         </q-toolbar-title>
 
         <div class="q-gutter-x-sm">
+          <q-btn
+            flat
+            round
+            :icon="isDark ? 'dark_mode' : 'light_mode'"
+            @click="toggleDarkMode"
+            aria-label="Cambiar tema"
+          >
+            <q-tooltip>{{ isDark ? 'Modo claro' : 'Modo oscuro' }}</q-tooltip>
+          </q-btn>
+
           <template v-if="auth.isLoggedIn">
             <q-btn flat :label="auth.userName" @click="goToProfile" />
             <q-btn flat label="Cerrar sesión" @click="logout" />
@@ -67,14 +77,16 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from 'src/stores/auth'
+import { useQuasar } from 'quasar'
 
+const $q = useQuasar()
 const leftDrawerOpen = ref(false)
 const auth = useAuthStore()
 const router = useRouter()
-
+const isDark = computed(() => $q.dark.isActive)
 function toggleLeftDrawer() {
   leftDrawerOpen.value = !leftDrawerOpen.value
 }
@@ -92,6 +104,21 @@ function goToProfile() {
 
 function goToFavoritos() {
   router.push('/usuario/favoritos')
+}
+
+// Cargar preferencia guardada al montar
+onMounted(() => {
+  const saved = localStorage.getItem('darkMode')
+  if (saved !== null) {
+    $q.dark.set(saved === 'true')
+  }
+})
+
+
+// Alternar tema y guardar en localStorage
+function toggleDarkMode() {
+  $q.dark.toggle()
+  localStorage.setItem('darkMode', $q.dark.isActive)
 }
 </script>
 

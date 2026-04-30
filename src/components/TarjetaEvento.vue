@@ -1,5 +1,5 @@
 <template>
-  <q-card class="card-custom q-ma-sm bg-dark-card text-white shadow-10" style="width: 350px">
+  <q-card class="card-custom q-ma-sm bg-dark-card shadow-10" style="width: 350px">
     <q-img
       :src="imagenPortada"
       :ratio="16/9"
@@ -15,7 +15,7 @@
 
     <q-card-section>
       <div class="text-h6 text-weight-bold q-mb-xs">{{ evento.titulo }}</div>
-      <p class="text-caption text-grey-5 q-mb-sm">
+      <p class="text-caption q-mb-sm" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
         {{ descripcionCorta }}
       </p>
 
@@ -26,11 +26,13 @@
         <span class="text-caption">{{ horaFormateada }}</span>
       </div>
 
-      <div class="row items-center text-grey-5 q-gutter-x-sm">
+      <div class="row items-center q-gutter-x-sm" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
         <q-icon name="place" size="xs" color="orange" />
         <span class="text-caption">{{ ubicacion }}</span>
       </div>
     </q-card-section>
+
+    <q-space />
 
     <q-card-actions align="between" class="q-px-md q-pb-md">
       <div class="text-primary text-weight-bold">{{ precioMostrado }}</div>
@@ -51,12 +53,22 @@
   background: v-bind("$q.dark.isActive ? '#1d1d1d' : '#ffffff'");
   color: v-bind("$q.dark.isActive ? '#ffffff' : '#1d1d1d'");
 }
+.card-custom {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.btn-rounded {
+  border-radius: 8px;
+}
 </style>
 
 <script setup>
 import { computed, ref } from 'vue'
 import { couch } from 'src/api/index'
+import { useQuasar } from 'quasar'
 
+const $q = useQuasar()
 const props = defineProps({ evento: Object })
 const imgError = ref(false)
 
@@ -65,11 +77,9 @@ const categoriaRaw = computed(() => {
   const cat = props.evento.categoria
   if (!cat) return ''
   if (typeof cat === 'string') return cat
-  // Si es objeto, intentar obtener 'nombre' o 'clave'
   return cat.nombre || cat.clave || ''
 })
 
-// Mapeo de nombres legibles y colores
 const categoriaInfo = computed(() => {
   const clave = categoriaRaw.value.toLowerCase()
   const map = {
@@ -84,7 +94,6 @@ const categoriaInfo = computed(() => {
   return map[clave] || { nombre: categoriaRaw.value || 'Evento', color: 'grey' }
 })
 
-// Extraer nombre del departamento (string u objeto)
 const nombreDepartamento = computed(() => {
   const dep = props.evento.departamento
   if (!dep) return ''
@@ -92,7 +101,6 @@ const nombreDepartamento = computed(() => {
   return dep.nombre || dep.clave || ''
 })
 
-// Fecha y hora (con validación)
 const fechaFormateada = computed(() => {
   if (!props.evento.fecha_inicio) return 'Fecha no definida'
   const date = new Date(props.evento.fecha_inicio)
@@ -107,16 +115,14 @@ const horaFormateada = computed(() => {
   return date.toLocaleTimeString('es-SV', { hour: '2-digit', minute: '2-digit', timeZone: 'America/El_Salvador' })
 })
 
-// Precio (si existe el campo, si no 'Gratis')
 const precioMostrado = computed(() => {
   if (!props.evento.precio && props.evento.precio !== 0) return 'Gratis'
   if (typeof props.evento.precio === 'number') {
     return new Intl.NumberFormat('es-SV', { style: 'currency', currency: 'USD' }).format(props.evento.precio)
   }
-  return props.evento.precio // string como "Gratis" o "$5"
+  return props.evento.precio
 })
 
-// Descripción corta
 const descripcionCorta = computed(() => {
   if (!props.evento.descripcion) return 'Sin descripción disponible'
   const maxLen = 80
@@ -124,7 +130,6 @@ const descripcionCorta = computed(() => {
   return props.evento.descripcion.substring(0, maxLen).trim() + '...'
 })
 
-// Ubicación: municipio + departamento (limpio)
 const ubicacion = computed(() => {
   const municipio = props.evento.municipio || ''
   const departamento = nombreDepartamento.value
@@ -134,7 +139,6 @@ const ubicacion = computed(() => {
   return 'Ubicación no especificada'
 })
 
-// Imagen: manejo de error de carga
 const imgDocId = computed(() => 'evt_' + props.evento._id)
 const imagenPortada = computed(() => {
   if (imgError.value || !props.evento.imagen_portada) {
