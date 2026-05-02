@@ -25,7 +25,7 @@
                 Administrar Alcaldía
               </q-item-label>
 
-              <q-item clickable v-close-popup @click="abrirModalEvento(null)">
+              <q-item clickable v-close-popup @click="modalCrearOpen = true">
                 <q-item-section avatar>
                   <q-btn round dense color="primary" icon="description" />
                 </q-item-section>
@@ -85,7 +85,7 @@
         icon="description"
         unelevated
         no-caps
-        @click="abrirModalEvento(null)"
+        @click="modalCrearOpen = true"
       />
 
       <q-btn
@@ -212,7 +212,68 @@
       </div>
     </div>
 
-    <!-- Modales -->
+    <!-- Modal para elegir qué crear -->
+    <q-dialog v-model="modalCrearOpen">
+      <q-card
+        class="crear-modal"
+        :class="$q.dark.isActive ? 'bg-grey-10 text-white' : 'bg-white text-dark'"
+      >
+        <q-card-section class="crear-modal-header">
+          <div>
+            <div class="text-h6 text-weight-bold">Crear nuevo</div>
+            <div class="text-caption">Selecciona el tipo de registro</div>
+          </div>
+
+          <q-btn round flat dense icon="close" color="white" @click="modalCrearOpen = false" />
+        </q-card-section>
+
+        <q-card-section class="q-gutter-md crear-modal-body">
+          <q-card
+            flat
+            bordered
+            class="crear-option"
+            :class="$q.dark.isActive ? 'bg-grey-9 text-white' : 'bg-grey-1 text-dark'"
+            @click="seleccionarCrearSitio"
+          >
+            <q-card-section class="row items-center no-wrap q-gutter-md">
+              <q-avatar color="orange" text-color="white" icon="place" size="56px" />
+
+              <div>
+                <div class="text-subtitle1 text-weight-bold">Sitio Turístico</div>
+                <div class="text-caption crear-option-caption">
+                  Registra un lugar de interés para visitantes
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
+
+          <q-card
+            flat
+            bordered
+            class="crear-option"
+            :class="$q.dark.isActive ? 'bg-grey-9 text-white' : 'bg-grey-1 text-dark'"
+            @click="seleccionarCrearEvento"
+          >
+            <q-card-section class="row items-center no-wrap q-gutter-md">
+              <q-avatar color="indigo" text-color="white" icon="event" size="56px" />
+
+              <div>
+                <div class="text-subtitle1 text-weight-bold">Evento</div>
+                <div class="text-caption crear-option-caption">
+                  Crea un evento o actividad temporal
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
+        </q-card-section>
+
+        <q-card-section class="text-center text-caption crear-modal-footer">
+          Ambos tipos pueden asociarse a negocios cercanos automáticamente
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+
+    <!-- Modales de formularios -->
     <EventoFormModal
       v-model="modalEventoOpen"
       :evento="eventoSeleccionado"
@@ -239,6 +300,7 @@ const auth = useAuthStore()
 const DB = import.meta.env.VITE_DB_DATA
 
 const menuOpen = ref(false)
+const modalCrearOpen = ref(false)
 
 const tipo = ref('eventos')
 const filtroEstado = ref(null)
@@ -306,6 +368,16 @@ function abrirModalEvento(item = null) {
 function abrirModalSitio(item = null) {
   sitioSeleccionado.value = item
   modalSitioOpen.value = true
+}
+
+function seleccionarCrearEvento() {
+  modalCrearOpen.value = false
+  abrirModalEvento(null)
+}
+
+function seleccionarCrearSitio() {
+  modalCrearOpen.value = false
+  abrirModalSitio(null)
 }
 
 function abrirModalEdicion(item) {
@@ -410,6 +482,82 @@ onMounted(() => {
   z-index: 10;
 }
 
+/* Modal crear nuevo */
+.crear-modal {
+  width: 450px;
+  max-width: 92vw;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.crear-modal-header {
+  background: var(--q-primary);
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.crear-modal-body {
+  padding: 26px 24px 12px;
+}
+
+.crear-option {
+  border-radius: 12px;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.crear-option:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.crear-option-caption {
+  color: #6b7280;
+}
+
+.body--dark .crear-option-caption {
+  color: #c7c7c7;
+}
+
+.crear-modal-footer {
+  color: #8a8fa3;
+  padding-top: 4px;
+  padding-bottom: 18px;
+}
+
+/* Ajuste responsive para cards internas */
+.panel-content :deep(.q-card),
+.panel-content :deep(.evento-card),
+.panel-content :deep(.sitio-card),
+.panel-content :deep(.card-custom) {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.panel-content :deep(img),
+.panel-content :deep(.q-img),
+.panel-content :deep(.q-img__image) {
+  width: 100% !important;
+  max-width: 100% !important;
+  object-fit: cover;
+}
+
+.panel-content :deep(.q-card__section),
+.panel-content :deep(.text-h6),
+.panel-content :deep(.text-subtitle1),
+.panel-content :deep(.text-body1),
+.panel-content :deep(.text-body2) {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
 /* Móvil */
 @media (max-width: 600px) {
   .alcaldia-panel {
@@ -452,6 +600,24 @@ onMounted(() => {
   .estado-buttons .q-btn {
     min-height: 40px;
     border-radius: 8px;
+  }
+
+  .panel-content .row {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .panel-content [class*='col-'] {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .crear-modal {
+    width: 92vw;
+  }
+
+  .crear-modal-body {
+    padding: 22px 18px 10px;
   }
 }
 </style>
