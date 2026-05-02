@@ -78,6 +78,7 @@ onMounted(async () => {
 async function guardar() {
   saving.value = true
   try {
+    // 1. Preparamos los datos a actualizar
     const updates = {
       nombre_comercial: form.nombre_comercial,
       descripcion: form.descripcion,
@@ -93,31 +94,37 @@ async function guardar() {
       }
     }
 
+    // 2. Si hay una nueva imagen seleccionada, asignamos el nombre al campo imagen_portada
+    // Esto asegura que se guarde en el documento del negocio
+    if (portadaFile.value) {
+      updates.imagen_portada = portadaFile.value.name
+    }
+
+    // 3. Realizamos una ÚNICA actualización del negocio con todos los campos
     await negocioAPI.updateNegocio(negocioId.value, docRev.value, updates)
 
-        if (portadaFile.value) {
+    // 4. Si hay un archivo, lo subimos al documento de adjuntos correspondiente
+    if (portadaFile.value) {
       const imgDocId = 'neg_' + negocioId.value
       let imgDoc
+
       try {
         // Intentamos obtener el documento de imagen existente
         imgDoc = await couch.get(import.meta.env.VITE_DB_IMAGES, imgDocId)
       } catch {
-        // Si no existe, lo creamos (sin attachments todavía)
-        imgDoc = await couch.createImageDoc(imgDocId, 'negocio', negocioId)
+        // Si no existe (es la primera vez), lo creamos
+        // Nota: Usamos .value porque negocioId es un ref
+        imgDoc = await couch.createImageDoc(imgDocId, 'negocio', negocioId.value)
       }
 
-      // Subir el archivo usando la revisión correcta
+      // Subir el archivo físico a la base de datos de imágenes
       await couch.uploadImage(imgDocId, imgDoc._rev, portadaFile.value)
-
-      // Actualizar el evento guardando el nombre del attachment
-      const eventoDoc = await couch.get(import.meta.env.VITE_DB_DATA, negocioId)
-      eventoDoc.imagen_portada = portadaFile.value.name
-      await couch.put(import.meta.env.VITE_DB_DATA, eventoDoc)
     }
 
+    // Redirigir al perfil para ver los cambios
     router.push('/negocio/perfil')
   } catch (e) {
-    console.error(e)
+    console.error('Error al guardar los cambios:', e)
   } finally {
     saving.value = false
   }

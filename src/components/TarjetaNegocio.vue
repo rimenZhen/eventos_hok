@@ -122,11 +122,13 @@ const imagenPortada = computed(() => {
     return couch.getImageUrl(imgDocId.value, props.negocio.imagen_portada)
   }
 
-  // 2. Si no, extraemos la primera imagen de los attachments del documento que consultamos
+  // 2. Si no, extraemos la ÚLTIMA imagen de los attachments
   if (docImagenes.value && docImagenes.value._attachments) {
     const nombresArchivos = Object.keys(docImagenes.value._attachments)
+
     if (nombresArchivos.length > 0) {
-      return couch.getImageUrl(imgDocId.value, nombresArchivos[0])
+      // .at(-1) selecciona el último elemento del array de nombres
+      return couch.getImageUrl(imgDocId.value, nombresArchivos.at(-1))
     }
   }
 

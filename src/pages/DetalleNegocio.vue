@@ -233,14 +233,14 @@ const imagenPortada = computed(() => {
     return couch.getImageUrl(imgDocId.value, negocio.value.imagen_portada)
   }
 
-  // 2. Si no, extraemos la primera imagen de los attachments
+  // 2. Si no, extraemos la ULTIMA imagen de los attachments
   if (docImagenes.value && docImagenes.value._attachments) {
     const nombresArchivos = Object.keys(docImagenes.value._attachments)
 
     if (nombresArchivos.length > 0) {
-      // Object.keys() respeta el orden del JSON, por lo que nombresArchivos[0]
-      // será tu "Gemini_Generated_Image_xzrf8dxzrf8dxzrf.png"
-      return couch.getImageUrl(imgDocId.value, nombresArchivos[0])
+      // Usamos .at(-1) para obtener el último elemento del array de forma limpia
+      const ultimaImagen = nombresArchivos.at(-1)
+      return couch.getImageUrl(imgDocId.value, ultimaImagen)
     }
   }
 
