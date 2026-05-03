@@ -266,7 +266,7 @@ const cargarNegociosCercanos = async () => {
 
 // Función para navegar al detalle del negocio
 const irANegocio = (id) => {
-  router.push(`/detalle-negocio/${id}`)
+  router.push(`/negocio/${id}`)
 }
 
 async function cargarSitio() {
