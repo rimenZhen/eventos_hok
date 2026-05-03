@@ -274,13 +274,9 @@
     </q-dialog>
 
     <!-- Modales de formularios -->
-    <EventoFormModal
-      v-model="modalEventoOpen"
-      :evento="eventoSeleccionado"
-      @saved="recargarDatos"
-    />
+    <EventoFormModal v-model="modalEventoOpen" :evento="eventoSeleccionado" @saved="onSaved" />
 
-    <SitioFormModal v-model="modalSitioOpen" :sitio="sitioSeleccionado" @saved="recargarDatos" />
+    <SitioFormModal v-model="modalSitioOpen" :sitio="sitioSeleccionado" @saved="onSaved" />
   </q-page>
 </template>
 
@@ -345,6 +341,16 @@ async function cargarDatos() {
 
 async function recargarDatos() {
   await cargarDatos()
+}
+
+function onSaved() {
+  $q.notify({
+    type: 'positive',
+    message: 'El registro se ha guardado correctamente.',
+    position: 'top',
+    timeout: 2500,
+  })
+  recargarDatos()
 }
 
 async function toggleArchivar(item) {
