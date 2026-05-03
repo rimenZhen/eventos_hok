@@ -12,6 +12,17 @@
       <q-input v-model="form.direccion" label="Dirección" outlined />
       <q-input v-model="form.lat" label="Latitud" type="number" step="any" outlined />
       <q-input v-model="form.lng" label="Longitud" type="number" step="any" outlined />
+      <q-btn
+        label="Usar ubicación actual"
+        color="secondary"
+        class="full-width"
+        outline
+        :loading="gpsLoading"
+        @click="usarUbicacionActual"
+      />
+      <div v-if="gpsError" class="text-negative text-caption q-mt-xs">
+        {{ gpsError }}
+      </div>
 
       <q-file v-model="portadaFile" label="Imagen de portada" outlined class="q-mt-sm" accept="image/*" />
 
@@ -35,6 +46,8 @@ const saving = ref(false)
 const portadaFile = ref(null)
 const negocioId = ref(null)
 const docRev = ref(null)
+const gpsLoading = ref(false)
+const gpsError = ref('')
 
 const form = reactive({
   nombre_comercial: '',
@@ -51,6 +64,37 @@ const form = reactive({
 
 const categoriasOptions = computed(() => configStore.categorias?.map(c => ({ label: c.nombre, value: c.clave })) || [])
 const departamentosOptions = computed(() => configStore.departamentos?.map(d => ({ label: d.nombre, value: d.clave })) || [])
+
+function usarUbicacionActual() {
+  gpsError.value = ''
+
+  if (!navigator.geolocation) {
+    gpsError.value = 'Tu navegador no soporta geolocalización.'
+    return
+  }
+
+  gpsLoading.value = true
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      form.lat = position.coords.latitude
+      form.lng = position.coords.longitude
+      gpsLoading.value = false
+    },
+    (error) => {
+      gpsLoading.value = false
+      if (error.code === error.PERMISSION_DENIED) {
+        gpsError.value = 'Debes permitir el acceso a tu ubicación.'
+      } else if (error.code === error.POSITION_UNAVAILABLE) {
+        gpsError.value = 'No fue posible obtener tu ubicación actual.'
+      } else if (error.code === error.TIMEOUT) {
+        gpsError.value = 'Se agotó el tiempo para obtener tu ubicación.'
+      } else {
+        gpsError.value = 'No se pudo obtener tu ubicación actual.'
+      }
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  )
+}
 
 onMounted(async () => {
   if (configStore.departamentos.length === 0) await configStore.fetchCatalogos()

@@ -68,6 +68,31 @@
               label="Teléfono de contacto"
               outlined
             />
+            <q-input
+              v-model="form.detalle_negocio.localizacion.lat"
+              label="Latitud"
+              type="number"
+              step="any"
+              outlined
+            />
+            <q-input
+              v-model="form.detalle_negocio.localizacion.lng"
+              label="Longitud"
+              type="number"
+              step="any"
+              outlined
+            />
+            <q-btn
+              label="Usar ubicación actual"
+              color="secondary"
+              class="full-width"
+              outline
+              :loading="gpsLoading"
+              @click="usarUbicacionActual"
+            />
+            <div v-if="gpsError" class="text-negative text-caption q-mt-xs">
+              {{ gpsError }}
+            </div>
           </template>
 
           <template v-if="form.rol === 'alcaldia'">
@@ -112,7 +137,7 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from 'src/stores/auth'
 
@@ -134,13 +159,52 @@ const form = reactive({
   detalle_negocio: {
     nombre_comercial: '',
     nit_registro: '',
-    contacto: ''
+    contacto: '',
+    localizacion: {
+      lat: '',
+      lng: '',
+      direccion: ''
+    }
   },
   detalle_alcaldia: {
     nombre_institucional: '',
     telefono: ''
   }
 })
+
+const gpsLoading = ref(false)
+const gpsError = ref('')
+
+function usarUbicacionActual() {
+  gpsError.value = ''
+
+  if (!navigator.geolocation) {
+    gpsError.value = 'Tu navegador no soporta geolocalización.'
+    return
+  }
+
+  gpsLoading.value = true
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      form.detalle_negocio.localizacion.lat = position.coords.latitude
+      form.detalle_negocio.localizacion.lng = position.coords.longitude
+      gpsLoading.value = false
+    },
+    (error) => {
+      gpsLoading.value = false
+      if (error.code === error.PERMISSION_DENIED) {
+        gpsError.value = 'Debes permitir el acceso a tu ubicación.'
+      } else if (error.code === error.POSITION_UNAVAILABLE) {
+        gpsError.value = 'No fue posible obtener tu ubicación actual.'
+      } else if (error.code === error.TIMEOUT) {
+        gpsError.value = 'Se agotó el tiempo para obtener tu ubicación.'
+      } else {
+        gpsError.value = 'No se pudo obtener tu ubicación actual.'
+      }
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  )
+}
 
 async function onSubmit() {
   // Construir objeto detalles según rol
@@ -151,7 +215,11 @@ async function onSubmit() {
     detalles = {
       detalle_negocio: {
         ...form.detalle_negocio,
-        localizacion: { lat: 0, lng: 0, direccion: '' },
+        localizacion: {
+          lat: Number(form.detalle_negocio.localizacion.lat) || 0,
+          lng: Number(form.detalle_negocio.localizacion.lng) || 0,
+          direccion: form.detalle_negocio.localizacion.direccion || ''
+        },
         estado_solicitud: 'pendiente'
       }
     }
