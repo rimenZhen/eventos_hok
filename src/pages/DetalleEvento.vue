@@ -160,7 +160,7 @@
                   <q-card-section>
                     <div class="text-subtitle1 text-weight-bold">Negocios Cercanos</div>
                     <q-list dense separator>
-                      <q-item v-for="negocio in negociosCercanos" :key="negocio.nombre" clickable v-ripple>
+                      <q-item v-for="negocio in negociosCercanos" :key="negocio.nombre" clickable v-ripple @click="negocio.id ? irANegocio(negocio.id) : null">
                         <q-item-section avatar>
                           <q-icon name="store" color="grey" />
                         </q-item-section>
@@ -207,7 +207,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { couch } from 'src/api/index'
 import { useAuthStore } from 'src/stores/auth'
@@ -218,6 +218,7 @@ import BotonVisita from 'src/components/BotonVisita.vue'
 
 const $q = useQuasar()
 const route = useRoute()
+const router = useRouter()
 const auth = useAuthStore()
 const evento = ref(null)
 const error = ref(null)
@@ -338,6 +339,7 @@ const cargarNegociosCercanos = async () => {
       municipio: evento.value.municipio
     }, { limit: 5 })
     negociosCercanos.value = result.docs.map(neg => ({
+      id: neg._id,
       nombre: neg.nombre_comercial,
       descripcion: neg.descripcion?.substring(0, 50),
       rating: neg.calificacion_promedio || 4.0
@@ -350,6 +352,13 @@ const cargarNegociosCercanos = async () => {
       { nombre: 'Café del Mar', descripcion: 'Café y postres con vista al mar', rating: 4.7 },
       { nombre: 'Artesanías Playeras', descripcion: 'Recreaciones y artesanías locales', rating: 4.5 }
     ]
+  }
+}
+
+// Función para navegar al detalle del negocio
+const irANegocio = (id) => {
+  if (id) {
+    router.push(`/negocio/${id}`)
   }
 }
 

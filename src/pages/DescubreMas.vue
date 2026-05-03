@@ -145,10 +145,18 @@ const currentPage = ref(1)
 const itemsPerPage = ref(6)
 const itemsPerPageOptions = [6, 12, 24]
 
-// Opciones para selects
-const opcionesCategorias = computed(() =>
-  configStore.categorias.map(c => ({ label: c.nombre, value: c.clave }))
-)
+const opcionesCategorias = computed(() => {
+  let cats = []
+  if (tab.value === 'eventos') {
+    cats = configStore.categoriasEventos || []
+  } else if (tab.value === 'sitios') {
+    cats = configStore.categoriasSitios || []
+  } else if (tab.value === 'negocios') {
+    cats = configStore.categoriasNegocios || []
+  }
+  return cats.map(c => ({ label: c.nombre, value: c.clave }))
+})
+
 const opcionesDepartamentos = computed(() =>
   configStore.departamentos.map(d => ({ label: d.nombre, value: d.clave }))
 )
@@ -174,10 +182,9 @@ const paginatedItems = computed(() => {
   return items.value.slice(start, start + itemsPerPage.value)
 })
 
-// Reiniciar página al cambiar tab o filtros
-watch([tab, filtros], () => {
-  currentPage.value = 1
-}, { deep: true })
+watch(tab, () => {
+  filtros.categoria = null
+})
 
 async function cargarResultados() {
   const filtrosActuales = {

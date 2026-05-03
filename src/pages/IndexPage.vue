@@ -74,7 +74,16 @@
         <p class="text-subtitle1 text-grey-6">Encuentra eventos, sitios y negocios cerca de ti</p>
         <div class="title-underline"></div>
       </div>
-      <MapaInteractivo :eventos="eventosStore.eventos" :sitios="sitiosStore.sitios" />
+      <!-- Pasar las props necesarias -->
+      <MapaInteractivo
+        :eventos="eventosStore.eventos"
+        :sitios="sitiosStore.sitios"
+        :negocios="negociosStore.negocios"
+        :categorias-eventos="configuracionStore.categoriasEventos"
+        :categorias-sitios="configuracionStore.categoriasSitios"
+        :categorias-negocios="configuracionStore.categoriasNegocios"
+        :departamentos="configuracionStore.departamentos"
+      />
     </div>
   </q-page>
 </template>
@@ -85,6 +94,7 @@ import { useRouter } from 'vue-router'
 import { useEventosStore } from 'src/stores/eventos'
 import { useSitiosStore } from 'src/stores/sitios'
 import { useNegociosStore } from 'src/stores/negocios'
+import { useConfiguracionStore } from 'src/stores/configuracion'  // ← importar
 import TarjetaEvento from 'src/components/TarjetaEvento.vue'
 import TarjetaSitio from 'src/components/TarjetaSitio.vue'
 import TarjetaNegocio from 'src/components/TarjetaNegocio.vue'
@@ -96,12 +106,14 @@ const router = useRouter()
 const eventosStore = useEventosStore()
 const sitiosStore = useSitiosStore()
 const negociosStore = useNegociosStore()
+const configuracionStore = useConfiguracionStore() // ← instanciar
 
 onMounted(async () => {
   await Promise.all([
     eventosStore.fetchDestacados(),
     sitiosStore.fetchDestacados(),
-    negociosStore.fetchActivos()
+    negociosStore.fetchActivos(),
+    configuracionStore.fetchCatalogos()  // ← cargar catálogos
   ])
 })
 
@@ -115,17 +127,14 @@ function irDescubre() {
 </script>
 
 <style scoped>
+/* ... el estilo se mantiene igual ... */
 .hero {
   background: linear-gradient(135deg, var(--q-color-primary), #2A9D8F);
 }
-
-/* Contenedor centrado con ancho máximo (como en DescubreMas) */
 .section-container {
   max-width: 1200px;
   margin: 0 auto;
 }
-
-/* Línea decorativa debajo del título */
 .title-underline {
   width: 80px;
   height: 4px;
@@ -133,18 +142,13 @@ function irDescubre() {
   margin: 0.5rem auto 0;
   border-radius: 2px;
 }
-
-/* --- Nuevas reglas para igualar altura (tomadas de DescubreMas) --- */
 .card-col {
   display: flex;
 }
-
 .card-col > * {
   flex: 1;
   display: flex;
   flex-direction: column;
   width: 100% !important;
 }
-
-/* Eliminamos anchos fijos anteriores que ya no se usarán */
 </style>

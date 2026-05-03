@@ -6,7 +6,9 @@ const DB = import.meta.env.VITE_DB_DATA
 export const useConfiguracionStore = defineStore('configuracion', {
   state: () => ({
     departamentos: [],
-    categorias: [],
+    categoriasEventos: [],
+    categoriasSitios: [],
+    categoriasNegocios: [],
     loading: false,
     error: null
   }),
@@ -14,14 +16,20 @@ export const useConfiguracionStore = defineStore('configuracion', {
     async fetchCatalogos() {
       this.loading = true
       try {
-        // Obtenemos todos los documentos de configuración
         const result = await couch.find(DB, { type: 'configuracion' })
         if (result.docs) {
           for (const doc of result.docs) {
-            if (doc.descripcion.includes('departamento')) {
-              this.departamentos = doc.items.filter(i => i.activo)
-            } else if (doc.descripcion.includes('categoría')) {
-              this.categorias = doc.items.filter(i => i.activo)
+            const desc = doc.descripcion?.toLowerCase() || ''
+            const itemsActivos = doc.items?.filter(i => i.activo) || []
+
+            if (desc.includes('departamento')) {
+              this.departamentos = itemsActivos
+            } else if (desc.includes('categorías de eventos') || desc.includes('categorias de eventos')) {
+              this.categoriasEventos = itemsActivos
+            } else if (desc.includes('categorías de sitios') || desc.includes('categorias de sitios')) {
+              this.categoriasSitios = itemsActivos
+            } else if (desc.includes('categorías de negocios') || desc.includes('categorias de negocios')) {
+              this.categoriasNegocios = itemsActivos
             }
           }
         }
