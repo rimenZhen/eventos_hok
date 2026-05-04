@@ -1,0 +1,34 @@
+{
+  "docs": [
+    {
+      "_id": "3391b2d5a69b5b5ab7034e1d31004e3b",
+      "type": "evento",
+      "titulo": "Comelona de Las Fiestas Julias",
+      "descripcion": "¡Prepara tu estómago! Ven y vive la fiesta gastronómica más grande de la Ciudad Morena. Dentro de nuestras tradicionales Fiestas Julias, te invitamos a la Comelona, un espacio dedicado a los amantes del buen comer y la tradición santaneca.",
+      "categoria": {
+        "label": "Gastronomía",
+        "value": "gastronomia"
+      },
+      "departamento": {
+        "label": "Santa Ana",
+        "value": "SANTA_ANA"
+      },
+      "municipio": "Santa Ana",
+      "direccion": "Campo de la Feria (Urbanización El Sinaí, contiguo a Bulevar Los 44)",
+      "localizacion": {
+        "lat": "13.9745",
+        "lng": "-89.5441"
+      },
+      "fecha_inicio": "2026-07-20T00:00:00.000Z",
+      "fecha_fin": "2026-07-21T00:00:00.000Z",
+      "estado": "archivado",
+      "alcaldia": {
+        "_id": "7c26ec227a8cb0d6d3cea07e80000732",
+        "nombre_institucional": "Alcaldía de Santa Ana",
+        "departamento": "",
+        "municipio": ""
+      },
+      "fecha_creacion": "2026-04-29T19:22:07.003Z"
+    }
+  ]
+}
