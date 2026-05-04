@@ -80,6 +80,8 @@
                 label="Organizador *"
                 placeholder="Nombre del responsable"
                 outlined
+                readonly
+                hint="Se toma automáticamente del nombre institucional de la alcaldía"
                 :error="!!errors.organizador"
                 :error-message="errors.organizador"
               />
@@ -279,9 +281,10 @@
                 outlined
                 emit-value
                 map-options
+                readonly
+                hint="Se asigna automáticamente según la alcaldía"
                 :error="!!errors.departamento"
                 :error-message="errors.departamento"
-                @update:model-value="form.municipio = ''"
               />
             </div>
 
@@ -293,7 +296,8 @@
                 outlined
                 emit-value
                 map-options
-                :disable="!form.departamento"
+                readonly
+                hint="Se asigna automáticamente según la alcaldía"
                 :error="!!errors.municipio"
                 :error-message="errors.municipio"
               />
@@ -412,18 +416,38 @@ const previewsExtras = ref([])
 const errors = reactive({})
 const sitiosDisponibles = ref([])
 
+const detalleAlcaldia = computed(() => auth.user?.detalles?.detalle_alcaldia || {})
+
 const categoriasOptions = computed(() =>
-  (configStore.categorias || []).map((c) => ({ label: c.nombre, value: c.clave })),
+  (configStore.categoriasEventos || []).map((c) => ({ label: c.nombre, value: c.clave })),
 )
 
-const departamentosOptions = computed(() =>
-  (configStore.departamentos || []).map((d) => ({ label: d.nombre, value: d.clave })),
-)
+const departamentosOptions = computed(() => {
+  const departamentoClave = form.departamento || detalleAlcaldia.value.departamento
+  if (!departamentoClave) return []
+
+  const departamento = configStore.departamentos?.find((d) => d.clave === departamentoClave)
+
+  return [
+    {
+      label: departamento?.nombre || departamentoClave,
+      value: departamentoClave,
+    },
+  ]
+})
 
 const municipiosOptions = computed(() => {
-  if (!form.departamento) return []
-  const depto = configStore.departamentos?.find((d) => d.clave === form.departamento)
-  return (depto?.municipios || []).map((m) => ({ label: m.nombre, value: m.nombre }))
+  const municipioClave = form.municipio || detalleAlcaldia.value.municipio
+  if (!municipioClave) return []
+
+  const alcaldia = configStore.alcaldias?.find((a) => a.clave === municipioClave)
+
+  return [
+    {
+      label: alcaldia?.nombre || municipioClave,
+      value: municipioClave,
+    },
+  ]
 })
 
 const categoriaLabel = computed(() => {
@@ -436,7 +460,9 @@ const resumenUbicacion = computed(() => {
     const depNombre =
       departamentosOptions.value.find((d) => d.value === form.departamento)?.label ||
       form.departamento
-    return `${form.municipio || ''}, ${depNombre}`.trim()
+    const munNombre =
+      municipiosOptions.value.find((m) => m.value === form.municipio)?.label || form.municipio
+    return `${munNombre || ''}, ${depNombre}`.trim()
   }
   if (form.lat !== null && form.lng !== null) return `${form.lat}, ${form.lng}`
   return '---'
@@ -461,16 +487,22 @@ async function prepararFormulario() {
   resetForm()
   currentStep.value = 1
 
-  if ((configStore.categorias || []).length === 0) await configStore.fetchCatalogos()
+  if ((configStore.categoriasEventos || []).length === 0) await configStore.fetchCatalogos()
   await cargarSitios()
 
-  if (!isEdit.value) {
-    const detalle = auth.user?.detalles?.detalle_alcaldia
-    if (detalle?.departamento) form.departamento = detalle.departamento
-    if (detalle?.municipio) form.municipio = detalle.municipio
-  }
+  aplicarDatosAlcaldia()
 
   if (props.evento) cargarEvento(props.evento)
+  aplicarDatosAlcaldia()
+}
+
+function aplicarDatosAlcaldia() {
+  const detalle = detalleAlcaldia.value
+
+  form.organizador = detalle.nombre_institucional || ''
+  form.contacto_organizador = form.contacto_organizador || detalle.telefono || ''
+  form.departamento = detalle.departamento || ''
+  form.municipio = detalle.municipio || ''
 }
 
 function getEmptyForm() {
@@ -672,8 +704,8 @@ async function guardar() {
       if (sitio) {
         eventoData.sitio_asociado = form.sitio_asociado
         eventoData.localizacion = sitio.localizacion || {}
-        eventoData.departamento = sitio.departamento || ''
-        eventoData.municipio = sitio.municipio || ''
+        eventoData.departamento = detalleAlcaldia.value.departamento || form.departamento
+        eventoData.municipio = detalleAlcaldia.value.municipio || form.municipio
         eventoData.direccion = sitio.direccion || ''
       }
     } else {
