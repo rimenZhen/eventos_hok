@@ -3,63 +3,228 @@
     <div v-if="loading" class="flex flex-center q-pa-xl">
       <q-spinner-dots color="primary" size="50px" />
     </div>
-    <div v-else-if="negocio">
-      <div class="text-h5 q-mb-md">{{ negocio.nombre_comercial }}</div>
-      <q-card>
+    <div v-else-if="negocioData" class="q-ma-md">
+      <div class="text-h5 q-mb-lg">Mi Negocio</div>
+      <PerfilNegocio 
+        v-if="negocioData"
+        :negocio="negocioData"
+        editLabel="Editar Información"
+        editIcon="edit"
+        editRoute="/negocio/editar"
+        @edit="handleEditClick"
+        @view-map="handleViewMap"
+      />
+      
+      <q-card class="q-mt-lg">
         <q-card-section>
-          <div class="row items-center">
-            <q-avatar size="100px" class="q-mr-md">
-              <q-img :src="imagenPortada" />
-            </q-avatar>
-            <div>
-              <div class="text-h6">{{ negocio.nombre_comercial }}</div>
-              <div class="text-subtitle2 text-grey">{{ negocio.municipio }}, {{ negocio.departamento }}</div>
-              <q-badge v-if="negocio.estado_solicitud === 'pendiente'" color="warning">Pendiente de aprobación</q-badge>
-              <q-badge v-else-if="negocio.estado_solicitud === 'aprobado'" color="positive">Aprobado</q-badge>
+          <div class="text-h6 q-mb-md">Información Adicional</div>
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-sm-6">
+              <p class="text-weight-bold text-grey-8">NIT:</p>
+              <p class="text-body2">{{ negocioData?.nit_registro || '-' }}</p>
+            </div>
+            <div class="col-12 col-sm-6">
+              <p class="text-weight-bold text-grey-8">Departamento:</p>
+              <p class="text-body2">{{ departamento || '-' }}</p>
+            </div>
+            <div class="col-12 col-sm-6">
+              <p class="text-weight-bold text-grey-8">Distrito:</p>
+              <p class="text-body2">{{ distrito || '-' }}</p>
+            </div>
+            <div class="col-12 col-sm-6">
+              <p class="text-weight-bold text-grey-8">Municipio:</p>
+              <p class="text-body2">{{ municipio || '-' }}</p>
+            </div>
+            <div class="col-12 col-sm-6">
+              <p class="text-weight-bold text-grey-8">Horario:</p>
+              <p class="text-body2" v-if="negocioData?.horario">
+                <q-btn 
+                  label="Ver horario" 
+                  flat 
+                  dense
+                  color="primary"
+                  @click="showHorario = !showHorario"
+                />
+              </p>
+              <p class="text-body2" v-else>No especificado</p>
             </div>
           </div>
-          <div class="q-mt-md">
-            <p><strong>Descripción:</strong> {{ negocio.descripcion || 'Sin descripción' }}</p>
-            <p><strong>Teléfono:</strong> {{ negocio.telefono || '-' }}</p>
-            <p><strong>NIT:</strong> {{ negocio.nit_registro || '-' }}</p>
-            <p><strong>Categoría:</strong> {{ negocio.categoria || '-' }}</p>
-            <p><strong>Horario:</strong> <span v-if="negocio.horario">Ver horario</span></p>
+          
+          <div class="q-mt-md" v-if="showHorario && negocioData?.horario">
+            <HorarioSemanal :model-value="negocioData.horario" readonly />
           </div>
-          <div class="q-mt-md">
-            <q-btn label="Editar negocio" color="primary" icon="edit" to="/negocio/editar" />
+        </q-card-section>
+      </q-card>
+
+      <q-card class="q-mt-lg" v-if="estadoSolicitud !== 'aprobado'">
+        <q-card-section>
+          <div class="text-h6 q-mb-md">Estado de Aprobación</div>
+          
+          <q-banner v-if="successMessage" class="bg-positive text-white q-mb-md rounded-borders">
+            {{ successMessage }}
+          </q-banner>
+
+          <div class="row items-center q-col-gutter-md">
+            <div class="col">
+              <p class="text-body2">
+                <span class="text-weight-bold">Estado:</span>
+                <q-badge 
+                  :label="estadoSolicitud === 'aprobado' ? 'Aprobado' : estadoSolicitud === 'pendiente' ? 'Pendiente' : estadoSolicitud === 'observacion' ? 'En observación' : 'Sin solicitud'"
+                  :color="
+                    estadoSolicitud === 'aprobado' ? 'positive' :
+                    estadoSolicitud === 'pendiente' ? 'warning' :
+                    estadoSolicitud === 'observacion' ? 'info' :
+                    'grey'
+                  "
+                />
+              </p>
+            </div>
+            <div class="col-auto" v-if="estadoSolicitud === 'sin_solicitud' || estadoSolicitud === 'rechazado'">
+              <q-btn 
+                :label="bottonLabel"
+                color="primary"
+                @click="handleSendApproval"
+                :disable="!canSendApproval"
+                :loading="sending"
+              />
+              <p v-if="!canSendApproval" class="text-caption text-orange q-mt-sm">
+                ⚠ Completa el campo "Municipio" en tu perfil antes de enviar la solicitud
+              </p>
+            </div>
           </div>
         </q-card-section>
       </q-card>
     </div>
-    <div v-else class="text-red">No se pudo cargar el negocio.</div>
+    <div v-else class="text-red q-ma-md">No se pudo cargar la información del negocio.</div>
   </q-page>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useAuthStore } from 'src/stores/auth'
+import { useRouter } from 'vue-router'
+import { useConfiguracionStore } from 'src/stores/configuracion'
 import { negocioAPI } from 'src/api/negocio'
+import { usuariosAPI } from 'src/api/usuarios'
 import { couch } from 'src/api/index'
+import PerfilNegocio from 'src/components/negocio/PerfilNegocio.vue'
+import HorarioSemanal from 'src/components/HorarioSemanal.vue'
+
+const DB = import.meta.env.VITE_DB_DATA
 
 const auth = useAuthStore()
+const router = useRouter()
+const configStore = useConfiguracionStore()
 const negocio = ref(null)
+const usuarioDoc = ref(null)
 const loading = ref(true)
+const showHorario = ref(false)
+const sending = ref(false)
+const successMessage = ref('')
 
-const imagenPortada = computed(() => {
-  if (negocio.value?.imagen_portada) {
-    const imgDocId = 'neg_' + negocio.value._id
-    return couch.getImageUrl(imgDocId, negocio.value.imagen_portada)
-  }
-  return 'https://via.placeholder.com/100'
+const getDisplayValue = (value) => {
+  if (!value) return ''
+  if (typeof value === 'string') return value
+  if (typeof value === 'object' && value.label) return value.label
+  if (typeof value === 'object' && value.nombre) return value.nombre
+  return ''
+}
+
+const departamento = computed(() => {
+  const deptUser = usuarioDoc.value?.detalles?.detalle_negocio?.departamento
+  const deptNegocio = negocio.value?.departamento
+  return configStore.getDepartamentoNombre(getDisplayValue(deptNegocio) || getDisplayValue(deptUser))
 })
+
+const distrito = computed(() => {
+  const distritoUser = usuarioDoc.value?.detalles?.detalle_negocio?.distrito
+  const distritoNegocio = negocio.value?.distrito
+  return configStore.getDistritoNombre(getDisplayValue(distritoNegocio) || getDisplayValue(distritoUser))
+})
+
+const municipio = computed(() => {
+  const distritoValue = usuarioDoc.value?.detalles?.detalle_negocio?.distrito || negocio.value?.distrito || ''
+  const municipioUser = usuarioDoc.value?.detalles?.detalle_negocio?.municipio
+  const municipioNegocio = negocio.value?.municipio
+  return configStore.getMunicipioNombre(getDisplayValue(distritoValue), getDisplayValue(municipioNegocio) || getDisplayValue(municipioUser))
+})
+
+const estadoSolicitud = computed(() => {
+  return negocio.value?.estado_solicitud || usuarioDoc.value?.detalles?.detalle_negocio?.estado_solicitud || 'sin_solicitud'
+})
+
+const negocioData = computed(() => {
+  // Si existe el negocio aprobado, devolver ese
+  if (negocio.value) {
+    return negocio.value
+  }
+  // Si no, construir desde usuarioDoc si existe
+  if (usuarioDoc.value?.detalles?.detalle_negocio) {
+    return usuarioDoc.value.detalles.detalle_negocio
+  }
+  return null
+})
+
+const canSendApproval = computed(() => {
+  return municipio.value && municipio.value.trim() !== ''
+})
+
+const bottonLabel = computed(() => {
+  const fueRechazado = usuarioDoc.value?.detalles?.detalle_negocio?.fue_rechazado || 
+                       negocio.value?.fue_rechazado || 
+                       false
+  return fueRechazado ? 'Apelar solicitud' : 'Enviar solicitud a la alcaldía'
+})
+
+const handleEditClick = () => {
+  router.push('/negocio/editar')
+}
+
+const handleViewMap = () => {
+  console.log('Ver en mapa:', negocio.value)
+}
+
+const handleSendApproval = async () => {
+  if (!canSendApproval.value) {
+    return
+  }
+  
+  sending.value = true
+  try {
+    await usuariosAPI.submitNegocioApprovalRequest(auth.user._id)
+    successMessage.value = 'Solicitud de aprobación enviada a la alcaldía'
+    setTimeout(() => {
+      successMessage.value = ''
+    }, 3000)
+    // Recargar datos para ver el estado actualizado
+    await cargarDatos()
+  } catch (e) {
+    console.error('Error al enviar solicitud:', e)
+  } finally {
+    sending.value = false
+  }
+}
+
+const cargarDatos = async () => {
+  try {
+    usuarioDoc.value = await couch.get(DB, auth.user._id)
+    try {
+      negocio.value = await negocioAPI.getMiNegocio(auth.user._id)
+    } catch {
+      // El negocio no existe aún (solicitud aún pendiente)
+      negocio.value = null
+    }
+  } catch (e) {
+    console.error('Error al cargar datos:', e)
+  }
+}
 
 onMounted(async () => {
   try {
-    if (auth.user) {
-      negocio.value = await negocioAPI.getMiNegocio(auth.user._id)
+    if (configStore.departamentos.length === 0) {
+      await configStore.fetchCatalogos()
     }
-  } catch (e) {
-    console.error(e)
+    await cargarDatos()
   } finally {
     loading.value = false
   }

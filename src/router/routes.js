@@ -26,7 +26,7 @@ const routes = [
       {
         path: 'alcaldia',
         meta: { requiresAuth: true, roles: ['alcaldia'] },
-        component: () => import('layouts/AdminLayout.vue'),
+        component: () => import('layouts/MainLayout.vue'),
         children: [
           { path: '', name: 'dashboard-alcaldia', component: () => import('pages/alcaldia/DashboardPage.vue') },
           { path: 'eventos', name: 'gestion-eventos', component: () => import('pages/alcaldia/GestionEventosPage.vue') },
@@ -43,7 +43,7 @@ const routes = [
       {
         path: 'negocio',
         meta: { requiresAuth: true, roles: ['negocio'] },
-        component: () => import('layouts/AdminLayout.vue'),
+        component: () => import('layouts/MainLayout.vue'),
         children: [
           { path: '', name: 'dashboard-negocio', component: () => import('pages/negocio/DashboardPage.vue') },
           { path: 'perfil', name: 'mi-negocio', component: () => import('pages/negocio/MiNegocioPage.vue') },

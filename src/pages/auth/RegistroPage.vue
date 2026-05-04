@@ -108,6 +108,36 @@
               label="Teléfono institucional"
               outlined
             />
+            <q-select
+              v-model="form.detalle_alcaldia.departamento"
+              :options="departamentosOptions"
+              label="Departamento"
+              outlined
+              emit-value
+              map-options
+              @update:model-value="handleDepartamentoAlcaldiaChange"
+            />
+            <q-select
+              v-model="form.detalle_alcaldia.distrito"
+              :options="distritosOptions"
+              label="Distrito"
+              outlined
+              class="q-mt-sm"
+              emit-value
+              map-options
+              :disable="!form.detalle_alcaldia.departamento"
+              @update:model-value="handleDistritoAlcaldiaChange"
+            />
+            <q-select
+              v-model="form.detalle_alcaldia.municipio"
+              :options="municipiosOptions"
+              label="Municipio"
+              outlined
+              class="q-mt-sm"
+              emit-value
+              map-options
+              :disable="!form.detalle_alcaldia.distrito"
+            />
           </template>
 
           <div>
@@ -137,11 +167,13 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { reactive, ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from 'src/stores/auth'
+import { useConfiguracionStore } from 'src/stores/configuracion'
 
 const authStore = useAuthStore()
+const configStore = useConfiguracionStore()
 const router = useRouter()
 
 const roles = [
@@ -168,12 +200,42 @@ const form = reactive({
   },
   detalle_alcaldia: {
     nombre_institucional: '',
-    telefono: ''
+    telefono: '',
+    departamento: null,
+    distrito: null,
+    municipio: null
   }
 })
 
 const gpsLoading = ref(false)
 const gpsError = ref('')
+
+const departamentosOptions = computed(() => configStore.getDepartamentosOptions())
+const getValue = (value) => {
+  if (!value) return null
+  if (typeof value === 'object') return value.value || value.clave || null
+  return value
+}
+
+const distritosOptions = computed(() => configStore.getDistritosByDepartamento(getValue(form.detalle_alcaldia.departamento)))
+const municipiosOptions = computed(() => configStore.getMunicipiosByDistrito(getValue(form.detalle_alcaldia.distrito)))
+
+function handleDepartamentoAlcaldiaChange(value) {
+  form.detalle_alcaldia.departamento = value
+  form.detalle_alcaldia.distrito = null
+  form.detalle_alcaldia.municipio = null
+}
+
+function handleDistritoAlcaldiaChange(value) {
+  form.detalle_alcaldia.distrito = value
+  form.detalle_alcaldia.municipio = null
+}
+
+onMounted(async () => {
+  if (configStore.departamentos.length === 0) {
+    await configStore.fetchCatalogos()
+  }
+})
 
 function usarUbicacionActual() {
   gpsError.value = ''
@@ -207,6 +269,10 @@ function usarUbicacionActual() {
 }
 
 async function onSubmit() {
+  if (configStore.departamentos.length === 0) {
+    await configStore.fetchCatalogos()
+  }
+
   // Construir objeto detalles según rol
   let detalles = {}
   if (form.rol === 'usuario_final') {
@@ -227,8 +293,9 @@ async function onSubmit() {
     detalles = {
       detalle_alcaldia: {
         ...form.detalle_alcaldia,
-        departamento: '',
-        municipio: '',
+        departamento: form.detalle_alcaldia.departamento,
+        distrito: form.detalle_alcaldia.distrito,
+        municipio: form.detalle_alcaldia.municipio,
         foto_perfil: ''
       }
     }

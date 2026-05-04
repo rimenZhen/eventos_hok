@@ -18,12 +18,18 @@ export const alcaldiaAPI = {
     return result.docs
   },
 
-  async getSolicitudesNegocios() {
-    const result = await couch.find(DB, {
+  async getSolicitudesNegocios(distritoClave = null) {
+    const selector = {
       type: 'usuario',
       rol: 'negocio',
       'detalles.detalle_negocio.estado_solicitud': { $in: ['pendiente', 'observacion'] }
-    })
+    }
+
+    if (distritoClave) {
+      selector['detalles.detalle_negocio.distrito'] = distritoClave
+    }
+
+    const result = await couch.find(DB, selector)
     return result.docs
   },
 
@@ -38,6 +44,17 @@ export const alcaldiaAPI = {
   async cambiarEstadoSolicitud(userId, nuevoEstado, alcaldiaData) {
     const userDoc = await couch.get(DB, userId)
     userDoc.detalles.detalle_negocio.estado_solicitud = nuevoEstado
+
+    const negocioDistrito = userDoc.detalles.detalle_negocio.distrito || ''
+    if (alcaldiaData.distrito && negocioDistrito && alcaldiaData.distrito !== negocioDistrito) {
+      throw new Error('La solicitud no pertenece al distrito de esta alcaldía')
+    }
+
+    // Si se rechaza la solicitud (vuelve a sin_solicitud), marcar como rechazado
+    if (nuevoEstado === 'sin_solicitud') {
+      userDoc.detalles.detalle_negocio.fue_rechazado = true
+    }
+
     await couch.put(DB, userDoc)
 
     if (nuevoEstado === 'aprobado') {
@@ -46,7 +63,9 @@ export const alcaldiaAPI = {
         nombre_comercial: userDoc.detalles.detalle_negocio.nombre_comercial,
         descripcion: '',
         categoria: '',
+        horario: userDoc.detalles.detalle_negocio.horario || {},
         departamento: alcaldiaData.departamento || '',
+        distrito: negocioDistrito,
         municipio: alcaldiaData.municipio || '',
         localizacion: userDoc.detalles.detalle_negocio.localizacion || { lat: 0, lng: 0, direccion: '' },
         nit_registro: userDoc.detalles.detalle_negocio.nit_registro,
@@ -63,6 +82,7 @@ export const alcaldiaAPI = {
           _id: alcaldiaData._id,
           nombre_institucional: alcaldiaData.nombre_institucional,
           departamento: alcaldiaData.departamento,
+          distrito: alcaldiaData.distrito || '',
           municipio: alcaldiaData.municipio
         },
         fecha_creacion: new Date().toISOString()
