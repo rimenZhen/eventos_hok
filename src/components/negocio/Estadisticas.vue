@@ -185,7 +185,18 @@ const selectedPeriodLabel = computed(() => {
 })
 
 function getCatalogItemByKey(key) {
-  return props.negocio?.catalogo?.find(producto => String(producto?.catalogKey) === String(key)) || null
+  if (!props.negocio?.catalogo?.length) return null
+
+  const stringKey = String(key)
+  const byCatalogKey = props.negocio.catalogo.find(producto => String(producto?.catalogKey) === stringKey)
+  if (byCatalogKey) return byCatalogKey
+
+  const index = Number.parseInt(stringKey, 10)
+  if (Number.isInteger(index) && index >= 0 && index < props.negocio.catalogo.length) {
+    return props.negocio.catalogo[index]
+  }
+
+  return null
 }
 
 // Procesa datos de visitas según el período seleccionado
@@ -287,12 +298,11 @@ const topCatalogo = computed(() => {
     const arr = clicks[key] || []
     const dates = arr.map(r => r.at).filter(Boolean).sort()
     const item = getCatalogItemByKey(key)
-    if (!item) return null
     return {
       key,
       count: arr.length,
       last: dates.length ? dates[dates.length - 1] : null,
-      nombre: item.nombre || `Producto ${key}`
+      nombre: item?.nombre || `Producto ${key}`
     }
   })
   return result.filter(Boolean).sort((a, b) => b.count - a.count)
@@ -319,9 +329,8 @@ const catalogoChartData = computed(() => {
       })
 
       const producto = getCatalogItemByKey(key)
-      if (!producto) return null
       return {
-        nombre: producto.nombre || `Producto ${key}`,
+        nombre: producto?.nombre || `Producto ${key}`,
         count: filtrados.length
       }
     })

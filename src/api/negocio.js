@@ -108,13 +108,13 @@ export const negocioAPI = {
 
   /**
    * Registra un click en un producto del catálogo para estadísticas.
-   * Guarda un arreglo de timestamps por índice de producto.
+   * Guarda un arreglo de timestamps por clave estable del producto.
    */
-  async recordCatalogClick(negocioId, index, meta = {}) {
+  async recordCatalogClick(negocioId, productKey, meta = {}) {
     const doc = await couch.get(DB, negocioId)
     doc.estadisticas = doc.estadisticas || {}
     doc.estadisticas.catalogoClicks = doc.estadisticas.catalogoClicks || {}
-    const key = String(index)
+    const key = String(productKey)
     doc.estadisticas.catalogoClicks[key] = doc.estadisticas.catalogoClicks[key] || []
     doc.estadisticas.catalogoClicks[key].push({ at: new Date().toISOString(), user: meta.userId || null })
     await couch.put(DB, doc)

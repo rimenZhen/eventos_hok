@@ -454,23 +454,27 @@ async function cargarNegocio() {
   try {
     const id = route.params.id
 
-    // 1. Cargar los datos del negocio
-    negocio.value = await couch.get(import.meta.env.VITE_DB_DATA, id)
-
-    // 2. Cargar el documento de imágenes para poblar docImagenes
-    try {
-      docImagenes.value = await couch.get('eventos_imagenes', `neg_${id}`)
-    } catch (imgErr) {
-
-    // 1. Cargar los datos del negocio
+    // 1. Cargar los datos del negocio usando la API (asegura normalización)
     negocio.value = await negocioAPI.getNegocioById(id)
 
-    // 2. Registrar visita al perfil del negocio
-    const userId = auth.user?._id || null
-    negocioAPI.recordProfileView(id, { userId }).catch(err => console.warn('Error registrando visita al perfil', err))
+    // 2. Cargar el documento de imágenes para poblar docImagenes (si existe)
+    try {
+      docImagenes.value = await couch.get(import.meta.env.VITE_DB_IMAGES, `neg_${id}`)
+    } catch (imgErr) {
+      docImagenes.value = null
       console.warn('El negocio no tiene documento de imágenes asociado aún.', imgErr)
     }
-  } catch {
+
+    // 3. Registrar visita al perfil del negocio y refrescar el documento para mostrar estadísticas
+    try {
+      const userId = auth.user?._id || null
+      await negocioAPI.recordProfileView(id, { userId })
+      negocio.value = await negocioAPI.getNegocioById(id)
+    } catch (err) {
+      console.warn('Error registrando visita al perfil', err)
+    }
+  } catch (err) {
+    console.error('cargarNegocio error:', err)
     error.value = 'Negocio no encontrado'
   }
 }
@@ -501,6 +505,32 @@ async function agregarResena({ calificacion, comentario }) {
     await cargarNegocio()
   } catch (err) {
     console.error('Error al guardar reseña:', err)
+  }
+}
+
+async function abrirDetalleProducto(index) {
+  try {
+    const prod = negocio.value?.catalogo?.[index]
+    if (!prod) return
+    productoSeleccionado.value = prod
+    slideActualDetalle.value = 0
+    mostrarDetalleProducto.value = true
+
+    // Registrar click en el catálogo para estadísticas (si hay usuario)
+    try {
+      const userId = auth.user?._id || null
+      await negocioAPI.recordCatalogClick(negocio.value._id, prod.catalogKey || index, { userId })
+      // refrescar el documento para que la UI muestre estadísticas actualizadas
+      try {
+        negocio.value = await negocioAPI.getNegocioById(negocio.value._id)
+      } catch (err) {
+        console.warn('No se pudo refrescar negocio tras registrar click', err)
+      }
+    } catch (err) {
+      console.warn('Error registrando click de catálogo', err)
+    }
+  } catch (err) {
+    console.error('abrirDetalleProducto error:', err)
   }
 }
 
