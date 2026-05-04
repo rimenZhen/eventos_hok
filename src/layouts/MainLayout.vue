@@ -129,10 +129,6 @@
         </template>
 
 
-        <q-item clickable @click="goToEstadisticas">
-  <q-item-section avatar><q-icon name="bar_chart" /></q-item-section>
-  <q-item-section>Estadísticas</q-item-section>
-</q-item>
 <q-item clickable @click="goToInstitutional">
   <q-item-section avatar><q-icon name="info" /></q-item-section>
   <q-item-section>Políticas y Sobre Nosotros</q-item-section>
@@ -161,10 +157,6 @@ const route = useRoute()
 
 function goToInstitutional() {
   router.push('/institucional')
-}
-
-function goToEstadisticas() {
-  router.push('/estadisticas')
 }
 
 

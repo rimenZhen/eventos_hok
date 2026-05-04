@@ -18,7 +18,7 @@ const routes = [
       { path: 'estadisticas', component: () => import('pages/EstadisticasPage.vue') },
       { path: 'institucional', component: () => import('pages/InstitucionalPage.vue') },
 
-      // Grupo Usuario (Simplificado sin redundancia de Layout)
+      // Grupo Usuario 
       {
         path: 'usuario',
         meta: { requiresAuth: true, roles: ['usuario_final', 'negocio', 'alcaldia'] },
@@ -30,7 +30,7 @@ const routes = [
         ]
       },
 
-      // Grupo Alcaldia (Se quitó el component: MainLayout porque ya está en la raíz)
+      // Grupo Alcaldia 
       {
         path: 'alcaldia',
         meta: { requiresAuth: true, roles: ['alcaldia'] },
@@ -43,11 +43,16 @@ const routes = [
           { path: 'sitios/crear', name: 'crear-sitio', component: () => import('pages/alcaldia/FormularioSitioPage.vue') },
           { path: 'sitios/editar/:id', name: 'editar-sitio', component: () => import('pages/alcaldia/FormularioSitioPage.vue') },
           { path: 'solicitudes', name: 'solicitudes-negocios', component: () => import('pages/alcaldia/SolicitudesNegociosPage.vue') },
-          { path: 'negocios', name: 'admin-negocios', component: () => import('pages/alcaldia/AdministracionNegociosPage.vue') }
+          { path: 'negocios', name: 'admin-negocios', component: () => import('pages/alcaldia/AdministracionNegociosPage.vue') },
+          {
+  path: 'estadisticas',
+  name: 'estadisticas-alcaldia',
+  component: () => import('pages/alcaldia/EstadisticasPage.vue')
+}
         ]
       },
 
-      // Grupo Negocio (Se quitó el component: MainLayout porque ya está en la raíz)
+      // Grupo Negocio
       {
         path: 'negocio',
         meta: { requiresAuth: true, roles: ['negocio'] },

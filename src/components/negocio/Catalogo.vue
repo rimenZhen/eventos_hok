@@ -323,295 +323,295 @@
 </template>
 
 <script setup>
-defineOptions({ name: 'CatalogoNegocio' })
-import { ref, reactive, onMounted, computed } from 'vue'
-import { useAuthStore } from 'src/stores/auth'
-import { negocioAPI } from 'src/api/negocio'
-import { couch } from 'src/api/index'
+  defineOptions({ name: 'CatalogoNegocio' })
+  import { ref, reactive, onMounted, computed } from 'vue'
+  import { useAuthStore } from 'src/stores/auth'
+  import { negocioAPI } from 'src/api/negocio'
+  import { couch } from 'src/api/index'
 
-// META TIPOS
-const PRODUCT_TYPE_META = {
-  almuerzos: { color: 'orange', icon: 'lunch_dining', label: 'Almuerzos' },
-  desayunos: { color: 'amber', icon: 'free_breakfast', label: 'Desayunos' },
-  cenas: { color: 'deep-orange', icon: 'dinner_dining', label: 'Cenas' },
-  comidas_rapidas: { color: 'red', icon: 'fastfood', label: 'Comidas Rápidas' },
-  bebidas: { color: 'blue', icon: 'local_drink', label: 'Bebidas' },
-  viajes: { color: 'indigo', icon: 'flight', label: 'Viajes' },
-  senderismo: { color: 'green', icon: 'hiking', label: 'Senderismo' },
-  artesanias: { color: 'brown', icon: 'palette', label: 'Artesanías' }
-}
-
-const typeOptions = Object.entries(PRODUCT_TYPE_META).map(([key, val]) => ({
-  label: val.label,
-  value: key,
-  icon: val.icon,
-  color: val.color
-}))
-
-const auth = useAuthStore()
-
-const negocio = ref(null)
-const dialogo = ref(false)
-const confirmaEliminar = ref(false)
-const editando = ref(null)
-const idxAEliminar = ref(null)
-const activeSlides = reactive({})
-const editImageSlide = ref(0)
-const replaceTargetIndex = ref(null)
-const replaceFile = ref(null)
-const pendingDeleteImages = ref([])
-const pendingReplacementFiles = reactive({})
-
-const prod = reactive({
-  nombre: '',
-  descripcion: '',
-  precio: 0,
-  tipo: '',
-  files: []
-})
-
-onMounted(async () => {
-  negocio.value = await negocioAPI.getMiNegocio(auth.user._id)
-})
-
-const currentEditImages = computed(() => {
-  if (editando.value === null || !negocio.value?.catalogo?.[editando.value]) return []
-  const item = negocio.value.catalogo[editando.value]
-  return item.imagenes?.length ? item.imagenes : item.imagen ? [item.imagen] : []
-})
-
-const hasPendingReplacements = computed(() => Object.keys(pendingReplacementFiles).length > 0)
-
-const remainingNewImageSlots = computed(() => {
-  const currentImages = currentEditImages.value.length
-  const pendingDeletes = pendingDeleteImages.value.length
-  const pendingNewFiles = prod.files.length
-  const usedSlots = Math.max(currentImages - pendingDeletes, 0) + pendingNewFiles
-  return Math.max(3 - usedSlots, 0)
-})
-
-function getMeta(tipo) {
-  return PRODUCT_TYPE_META[tipo] || {
-    icon: 'category',
-    color: 'grey',
-    label: tipo || 'Sin tipo'
+  // META TIPOS
+  const PRODUCT_TYPE_META = {
+    almuerzos: { color: 'orange', icon: 'lunch_dining', label: 'Almuerzos' },
+    desayunos: { color: 'amber', icon: 'free_breakfast', label: 'Desayunos' },
+    cenas: { color: 'deep-orange', icon: 'dinner_dining', label: 'Cenas' },
+    comidas_rapidas: { color: 'red', icon: 'fastfood', label: 'Comidas Rápidas' },
+    bebidas: { color: 'blue', icon: 'local_drink', label: 'Bebidas' },
+    viajes: { color: 'indigo', icon: 'flight', label: 'Viajes' },
+    senderismo: { color: 'green', icon: 'hiking', label: 'Senderismo' },
+    artesanias: { color: 'brown', icon: 'palette', label: 'Artesanías' }
   }
-}
 
-function getImagenProducto(nombreArchivo) {
-  try {
-    if (!nombreArchivo || !negocio?.value?._id) return 'https://via.placeholder.com/400x300'
-    // asegurar que los valores estén codificados correctamente
-    return couch.getImageUrl('neg_' + negocio.value._id, nombreArchivo)
-  } catch (err) {
-    // fallback visual y log para depuración
-    console.warn('getImagenProducto error:', err)
-    return 'https://via.placeholder.com/400x300'
-  }
-}
+  const typeOptions = Object.entries(PRODUCT_TYPE_META).map(([key, val]) => ({
+    label: val.label,
+    value: key,
+    icon: val.icon,
+    color: val.color
+  }))
 
-function formatDate(date) {
-  return date.toLocaleDateString()
-}
+  const auth = useAuthStore()
 
-function formatFileSize(bytes) {
-  if (bytes < 1024) return bytes + ' B'
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
-}
+  const negocio = ref(null)
+  const dialogo = ref(false)
+  const confirmaEliminar = ref(false)
+  const editando = ref(null)
+  const idxAEliminar = ref(null)
+  const activeSlides = reactive({})
+  const editImageSlide = ref(0)
+  const replaceTargetIndex = ref(null)
+  const replaceFile = ref(null)
+  const pendingDeleteImages = ref([])
+  const pendingReplacementFiles = reactive({})
 
-function removeFile(idx) {
-  prod.files.splice(idx, 1)
-}
-
-function onFilesRejected(rejectedEntries) {
-  console.warn('Archivos rechazados:', rejectedEntries)
-}
-
-function resetImageEditState() {
-  editImageSlide.value = 0
-  replaceTargetIndex.value = null
-  replaceFile.value = null
-  pendingDeleteImages.value = []
-  Object.keys(pendingReplacementFiles).forEach(key => {
-    delete pendingReplacementFiles[key]
+  const prod = reactive({
+    nombre: '',
+    descripcion: '',
+    precio: 0,
+    tipo: '',
+    files: []
   })
-}
 
-function resetDialog() {
-  resetImageEditState()
-  prod.files = []
-}
+  onMounted(async () => {
+    negocio.value = await negocioAPI.getMiNegocio(auth.user._id)
+  })
 
-function nuevoProducto() {
-  editando.value = null
-  Object.assign(prod, { nombre:'', descripcion:'', precio:0, tipo:'', files:[], catalogKey: '' })
-  resetImageEditState()
-  dialogo.value = true
-}
+  const currentEditImages = computed(() => {
+    if (editando.value === null || !negocio.value?.catalogo?.[editando.value]) return []
+    const item = negocio.value.catalogo[editando.value]
+    return item.imagenes?.length ? item.imagenes : item.imagen ? [item.imagen] : []
+  })
 
-function editarItem(idx) {
-  const item = negocio.value.catalogo[idx]
-  editando.value = idx
-  Object.assign(prod, item)
-  prod.files = [] // Limpiar archivos nuevos para evitar sobrescribir
-  resetImageEditState()
-  dialogo.value = true
-}
+  const hasPendingReplacements = computed(() => Object.keys(pendingReplacementFiles).length > 0)
 
-function startReplaceCurrentImage() {
-  if (!currentEditImages.value.length) return
-  replaceTargetIndex.value = editImageSlide.value
-  replaceFile.value = null
-}
+  const remainingNewImageSlots = computed(() => {
+    const currentImages = currentEditImages.value.length
+    const pendingDeletes = pendingDeleteImages.value.length
+    const pendingNewFiles = prod.files.length
+    const usedSlots = Math.max(currentImages - pendingDeletes, 0) + pendingNewFiles
+    return Math.max(3 - usedSlots, 0)
+  })
 
-function queueReplacementFile(file) {
-  if (replaceTargetIndex.value === null || !file) return
-  pendingReplacementFiles[replaceTargetIndex.value] = file
-  replaceTargetIndex.value = null
-  replaceFile.value = null
-}
-
-function toggleDeleteCurrentImage() {
-  if (!currentEditImages.value.length) return
-  const idx = editImageSlide.value
-  const exists = pendingDeleteImages.value.includes(idx)
-  pendingDeleteImages.value = exists
-    ? pendingDeleteImages.value.filter(item => item !== idx)
-    : [...pendingDeleteImages.value, idx]
-}
-
-async function syncImageDoc() {
-  const imgDocId = 'neg_' + negocio.value._id
-  try {
-    return await couch.get(import.meta.env.VITE_DB_IMAGES, imgDocId)
-  } catch {
-    return await couch.createImageDoc(imgDocId, 'negocio', negocio.value._id)
-  }
-}
-
-async function uploadSingleImage(imgDocId, imgDoc, file) {
-  await couch.uploadImage(imgDocId, imgDoc._rev, file)
-  return await couch.get(import.meta.env.VITE_DB_IMAGES, imgDocId)
-}
-
-function confirmarEliminar(idx) {
-  idxAEliminar.value = idx
-  confirmaEliminar.value = true
-}
-
-async function guardarProducto() {
-  const isEditing = editando.value !== null
-  const existingItem = isEditing && negocio.value?.catalogo?.[editando.value]
-    ? negocio.value.catalogo[editando.value]
-    : null
-
-  const baseImages = existingItem
-    ? (existingItem.imagenes?.length ? [...existingItem.imagenes] : existingItem.imagen ? [existingItem.imagen] : [])
-    : []
-
-  let workingImages = [...baseImages]
-  const nuevoItem = {
-    nombre: prod.nombre,
-    descripcion: prod.descripcion,
-    precio: prod.precio,
-    tipo: prod.tipo,
-    catalogKey: existingItem?.catalogKey || prod.catalogKey || '',
-    imagenes: [],
-    imagen: ''
-  }
-
-  const hasImageChanges =
-    prod.files.length > 0 ||
-    pendingDeleteImages.value.length > 0 ||
-    Object.keys(pendingReplacementFiles).length > 0
-
-  if (hasImageChanges) {
-    try {
-      const imgDocId = 'neg_' + negocio.value._id
-      let imgDoc = await syncImageDoc()
-
-      const deleteIndexes = [...pendingDeleteImages.value].sort((a, b) => b - a)
-      for (const deleteIdx of deleteIndexes) {
-        const attachmentName = workingImages[deleteIdx]
-        if (!attachmentName) continue
-        try {
-          imgDoc = await couch.deleteAttachment(imgDocId, imgDoc._rev, attachmentName)
-          workingImages.splice(deleteIdx, 1)
-        } catch (err) {
-          console.error('Error al eliminar imagen:', attachmentName, err)
-        }
-      }
-
-      const replacementIndexes = Object.keys(pendingReplacementFiles)
-        .map(Number)
-        .sort((a, b) => a - b)
-
-      for (const replaceIdx of replacementIndexes) {
-        const newFile = pendingReplacementFiles[replaceIdx]
-        const oldName = workingImages[replaceIdx]
-        if (!newFile || !oldName) continue
-
-        try {
-          imgDoc = await couch.deleteAttachment(imgDocId, imgDoc._rev, oldName)
-          imgDoc = await uploadSingleImage(imgDocId, imgDoc, newFile)
-          workingImages[replaceIdx] = newFile.name
-        } catch (err) {
-          console.error('Error al reemplazar imagen:', oldName, err)
-        }
-      }
-
-      for (const file of prod.files) {
-        try {
-          imgDoc = await uploadSingleImage(imgDocId, imgDoc, file)
-          workingImages.push(file.name)
-        } catch (err) {
-          console.error('Error al subir imagen:', file.name, err)
-        }
-      }
-
-      nuevoItem.imagenes = workingImages
-      nuevoItem.imagen = workingImages[0] || ''
-    } catch (err) {
-      console.error('Error en proceso de imágenes:', err)
+  function getMeta(tipo) {
+    return PRODUCT_TYPE_META[tipo] || {
+      icon: 'category',
+      color: 'grey',
+      label: tipo || 'Sin tipo'
     }
-  } else if (existingItem) {
-    nuevoItem.imagenes = baseImages
-    nuevoItem.imagen = baseImages[0] || ''
   }
 
-  if (isEditing) {
-    await negocioAPI.updateProducto(
-      negocio.value._id,
-      negocio.value._rev,
-      editando.value,
-      nuevoItem
-    )
-  } else {
-    await negocioAPI.addProducto(
-      negocio.value._id,
-      negocio.value._rev,
-      nuevoItem
-    )
+  function getImagenProducto(nombreArchivo) {
+    try {
+      if (!nombreArchivo || !negocio?.value?._id) return 'https://via.placeholder.com/400x300'
+      // asegurar que los valores estén codificados correctamente
+      return couch.getImageUrl('neg_' + negocio.value._id, nombreArchivo)
+    } catch (err) {
+      // fallback visual y log para depuración
+      console.warn('getImagenProducto error:', err)
+      return 'https://via.placeholder.com/400x300'
+    }
   }
 
-  negocio.value = await negocioAPI.getMiNegocio(auth.user._id)
-  dialogo.value = false
-  resetDialog()
-}
+  function formatDate(date) {
+    return date.toLocaleDateString()
+  }
 
-async function eliminarItem() {
-  await negocioAPI.deleteProducto(
-    negocio.value._id,
-    negocio.value._rev,
-    idxAEliminar.value
-  )
-  negocio.value = await negocioAPI.getMiNegocio(auth.user._id)
-  confirmaEliminar.value = false
-}
+  function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B'
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+  }
+
+  function removeFile(idx) {
+    prod.files.splice(idx, 1)
+  }
+
+  function onFilesRejected(rejectedEntries) {
+    console.warn('Archivos rechazados:', rejectedEntries)
+  }
+
+  function resetImageEditState() {
+    editImageSlide.value = 0
+    replaceTargetIndex.value = null
+    replaceFile.value = null
+    pendingDeleteImages.value = []
+    Object.keys(pendingReplacementFiles).forEach(key => {
+      delete pendingReplacementFiles[key]
+    })
+  }
+
+  function resetDialog() {
+    resetImageEditState()
+    prod.files = []
+  }
+
+  function nuevoProducto() {
+    editando.value = null
+    Object.assign(prod, { nombre:'', descripcion:'', precio:0, tipo:'', files:[], catalogKey: '' })
+    resetImageEditState()
+    dialogo.value = true
+  }
+
+  function editarItem(idx) {
+    const item = negocio.value.catalogo[idx]
+    editando.value = idx
+    Object.assign(prod, item)
+    prod.files = [] // Limpiar archivos nuevos para evitar sobrescribir
+    resetImageEditState()
+    dialogo.value = true
+  }
+
+  function startReplaceCurrentImage() {
+    if (!currentEditImages.value.length) return
+    replaceTargetIndex.value = editImageSlide.value
+    replaceFile.value = null
+  }
+
+  function queueReplacementFile(file) {
+    if (replaceTargetIndex.value === null || !file) return
+    pendingReplacementFiles[replaceTargetIndex.value] = file
+    replaceTargetIndex.value = null
+    replaceFile.value = null
+  }
+
+  function toggleDeleteCurrentImage() {
+    if (!currentEditImages.value.length) return
+    const idx = editImageSlide.value
+    const exists = pendingDeleteImages.value.includes(idx)
+    pendingDeleteImages.value = exists
+      ? pendingDeleteImages.value.filter(item => item !== idx)
+      : [...pendingDeleteImages.value, idx]
+  }
+
+  async function syncImageDoc() {
+    const imgDocId = 'neg_' + negocio.value._id
+    try {
+      return await couch.get(import.meta.env.VITE_DB_IMAGES, imgDocId)
+    } catch {
+      return await couch.createImageDoc(imgDocId, 'negocio', negocio.value._id)
+    }
+  }
+
+  async function uploadSingleImage(imgDocId, imgDoc, file) {
+    await couch.uploadImage(imgDocId, imgDoc._rev, file)
+    return await couch.get(import.meta.env.VITE_DB_IMAGES, imgDocId)
+  }
+
+  function confirmarEliminar(idx) {
+    idxAEliminar.value = idx
+    confirmaEliminar.value = true
+  }
+
+  async function guardarProducto() {
+    const isEditing = editando.value !== null
+    const existingItem = isEditing && negocio.value?.catalogo?.[editando.value]
+      ? negocio.value.catalogo[editando.value]
+      : null
+
+    const baseImages = existingItem
+      ? (existingItem.imagenes?.length ? [...existingItem.imagenes] : existingItem.imagen ? [existingItem.imagen] : [])
+      : []
+
+    let workingImages = [...baseImages]
+    const nuevoItem = {
+      nombre: prod.nombre,
+      descripcion: prod.descripcion,
+      precio: prod.precio,
+      tipo: prod.tipo,
+      catalogKey: existingItem?.catalogKey || prod.catalogKey || '',
+      imagenes: [],
+      imagen: ''
+    }
+
+    const hasImageChanges =
+      prod.files.length > 0 ||
+      pendingDeleteImages.value.length > 0 ||
+      Object.keys(pendingReplacementFiles).length > 0
+
+    if (hasImageChanges) {
+      try {
+        const imgDocId = 'neg_' + negocio.value._id
+        let imgDoc = await syncImageDoc()
+
+        const deleteIndexes = [...pendingDeleteImages.value].sort((a, b) => b - a)
+        for (const deleteIdx of deleteIndexes) {
+          const attachmentName = workingImages[deleteIdx]
+          if (!attachmentName) continue
+          try {
+            imgDoc = await couch.deleteAttachment(imgDocId, imgDoc._rev, attachmentName)
+            workingImages.splice(deleteIdx, 1)
+          } catch (err) {
+            console.error('Error al eliminar imagen:', attachmentName, err)
+          }
+        }
+
+        const replacementIndexes = Object.keys(pendingReplacementFiles)
+          .map(Number)
+          .sort((a, b) => a - b)
+
+        for (const replaceIdx of replacementIndexes) {
+          const newFile = pendingReplacementFiles[replaceIdx]
+          const oldName = workingImages[replaceIdx]
+          if (!newFile || !oldName) continue
+
+          try {
+            imgDoc = await couch.deleteAttachment(imgDocId, imgDoc._rev, oldName)
+            imgDoc = await uploadSingleImage(imgDocId, imgDoc, newFile)
+            workingImages[replaceIdx] = newFile.name
+          } catch (err) {
+            console.error('Error al reemplazar imagen:', oldName, err)
+          }
+        }
+
+        for (const file of prod.files) {
+          try {
+            imgDoc = await uploadSingleImage(imgDocId, imgDoc, file)
+            workingImages.push(file.name)
+          } catch (err) {
+            console.error('Error al subir imagen:', file.name, err)
+          }
+        }
+
+        nuevoItem.imagenes = workingImages
+        nuevoItem.imagen = workingImages[0] || ''
+      } catch (err) {
+        console.error('Error en proceso de imágenes:', err)
+      }
+    } else if (existingItem) {
+      nuevoItem.imagenes = baseImages
+      nuevoItem.imagen = baseImages[0] || ''
+    }
+
+    if (isEditing) {
+      await negocioAPI.updateProducto(
+        negocio.value._id,
+        negocio.value._rev,
+        editando.value,
+        nuevoItem
+      )
+    } else {
+      await negocioAPI.addProducto(
+        negocio.value._id,
+        negocio.value._rev,
+        nuevoItem
+      )
+    }
+
+    negocio.value = await negocioAPI.getMiNegocio(auth.user._id)
+    dialogo.value = false
+    resetDialog()
+  }
+
+  async function eliminarItem() {
+    await negocioAPI.deleteProducto(
+      negocio.value._id,
+      negocio.value._rev,
+      idxAEliminar.value
+    )
+    negocio.value = await negocioAPI.getMiNegocio(auth.user._id)
+    confirmaEliminar.value = false
+  }
 </script>
 
-<style scoped lang="scss">
+<style scoped>
 .catalogs-container {
   background: #f7f8fa;
   padding: 1.5rem;
@@ -688,11 +688,11 @@ async function eliminarItem() {
   border-radius: 16px;
   border: 1px solid #eee;
   transition: 0.25s;
+}
 
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
-  }
+.catalog-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.08);
 }
 
 .body--dark .catalog-card {
@@ -763,9 +763,10 @@ async function eliminarItem() {
   overflow: hidden;
   height: 100%;
   background: #f5f5f5;
-  :deep(.q-carousel__slide) {
-    padding: 0;
-  }
+}
+
+.carousel :deep(.q-carousel__slide) {
+  padding: 0;
 }
 
 .body--dark .carousel {
@@ -812,13 +813,13 @@ async function eliminarItem() {
   background: #f0f0f0;
   border-radius: 6px;
   font-size: 12px;
+}
 
-  span {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+.file-item span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .block {

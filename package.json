@@ -12,6 +12,8 @@
     "test": "echo \"No test specified\" && exit 0",
     "dev": "quasar dev",
     "build": "quasar build",
+    "repair:portadas:report": "node scripts/repair-portadas.mjs --mode report",
+    "repair:portadas:clear": "node scripts/repair-portadas.mjs --mode clear",
     "postinstall": "quasar prepare"
   },
   "dependencies": {
