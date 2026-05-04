@@ -23,6 +23,7 @@
       </div>
 
       <q-card-section class="wizard-body scroll">
+        <!-- Paso 1 -->
         <section v-if="currentStep === 1" class="step-content">
           <div class="row q-col-gutter-md">
             <div class="col-12">
@@ -115,6 +116,7 @@
           </div>
         </section>
 
+        <!-- Paso 2 -->
         <section v-if="currentStep === 2" class="step-content">
           <div class="text-subtitle1 text-weight-medium q-mb-md">Horarios de atención</div>
           <q-list bordered separator class="rounded-borders horarios-list">
@@ -156,6 +158,7 @@
           </q-list>
         </section>
 
+        <!-- Paso 3 -->
         <section v-if="currentStep === 3" class="step-content">
           <div class="row q-col-gutter-md">
             <div class="col-12">
@@ -204,6 +207,7 @@
           </div>
         </section>
 
+        <!-- Paso 4: Resumen (sin toggle de publicación) -->
         <section v-if="currentStep === 4" class="step-content">
           <div class="text-h6 q-mb-sm">Resumen del sitio</div>
           <q-list dense bordered class="rounded-borders q-mb-md">
@@ -222,10 +226,8 @@
               </q-item-section>
             </q-item>
           </q-list>
-
-          <q-toggle v-model="publishNow" label="Publicar inmediatamente" />
-          <div class="text-caption text-grey-7 q-mt-sm" v-if="!publishNow">
-            Se guardará como borrador.
+          <div class="text-caption text-grey-7">
+            El sitio se publicará automáticamente al guardar.
           </div>
         </section>
       </q-card-section>
@@ -298,7 +300,6 @@ const currentStepTitle = computed(
 )
 
 const saving = ref(false)
-const publishNow = ref(true)
 const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 
 const form = reactive(getEmptyForm())
@@ -381,7 +382,6 @@ function resetForm() {
   Object.assign(form, getEmptyForm())
   portadaFile.value = null
   previewPortada.value = null
-  publishNow.value = true
   inicializarHorario()
 }
 
@@ -411,7 +411,6 @@ function cargarSitio(s) {
     horario: s.horario ? { ...s.horario } : {},
   })
   previewPortada.value = s.imagen_portada || null
-  publishNow.value = s.estado === 'activo'
 }
 
 function onPortadaSelected(event) {
@@ -489,7 +488,7 @@ async function guardar() {
       municipio: form.municipio,
       direccion: form.direccion,
       horario: form.horario,
-      estado: publishNow.value ? 'activo' : 'borrador',
+      estado: 'activo', // siempre se publica
       alcaldia: {
         _id: auth.user._id,
         nombre_institucional: auth.user.detalles?.detalle_alcaldia?.nombre_institucional || '',

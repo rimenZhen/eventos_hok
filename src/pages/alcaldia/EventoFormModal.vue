@@ -305,6 +305,7 @@
           </div>
         </section>
 
+        <!-- Paso 4: Resumen sin toggle de publicación -->
         <section v-if="currentStep === 4" class="step-content">
           <div class="text-h6 q-mb-sm">Resumen del evento</div>
           <q-list dense bordered class="rounded-borders q-mb-md">
@@ -326,10 +327,8 @@
               <q-item-section>Costo: {{ Number(form.costo || 0).toFixed(2) }} USD</q-item-section>
             </q-item>
           </q-list>
-
-          <q-toggle v-model="publishNow" label="Publicar inmediatamente" />
-          <div class="text-caption text-grey-7 q-mt-sm" v-if="!publishNow">
-            Se guardará como borrador.
+          <div class="text-caption text-grey-7">
+            El evento se publicará automáticamente al guardar.
           </div>
         </section>
       </q-card-section>
@@ -402,7 +401,6 @@ const currentStepTitle = computed(
 )
 
 const saving = ref(false)
-const publishNow = ref(true)
 
 const form = reactive(getEmptyForm())
 const portadaFile = ref(null)
@@ -502,7 +500,6 @@ function resetForm() {
   imagenesExtrasFiles.value = []
   previewPortada.value = null
   previewsExtras.value = []
-  publishNow.value = true
 }
 
 function cargarEvento(ev) {
@@ -529,7 +526,6 @@ function cargarEvento(ev) {
     direccion: ev.direccion || '',
   })
   previewPortada.value = ev.imagen_portada || null
-  publishNow.value = ev.estado === 'activo'
 }
 
 async function cargarSitios() {
@@ -660,7 +656,7 @@ async function guardar() {
       municipio: form.municipio,
       direccion: form.direccion,
       localizacion: {},
-      estado: publishNow.value ? 'activo' : 'borrador',
+      estado: 'activo', // siempre se publica
       alcaldia: {
         _id: auth.user._id,
         nombre_institucional: auth.user.detalles?.detalle_alcaldia?.nombre_institucional || '',

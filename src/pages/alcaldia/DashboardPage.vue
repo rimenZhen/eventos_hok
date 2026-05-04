@@ -282,6 +282,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { useAuthStore } from 'src/stores/auth'
 import { alcaldiaAPI } from 'src/api/alcaldia'
@@ -293,13 +294,22 @@ import SitioFormModal from 'src/pages/alcaldia/SitioFormModal.vue'
 
 const $q = useQuasar()
 const auth = useAuthStore()
+const route = useRoute()
+const router = useRouter()
 const DB = import.meta.env.VITE_DB_DATA
 
 const menuOpen = ref(false)
 const modalCrearOpen = ref(false)
 
-const tipo = ref('eventos')
-const filtroEstado = ref(null)
+// Inicializar filtros desde los parámetros de consulta de la URL
+const tipo = ref(route.query.tipo || 'eventos')
+const filtroEstado = ref(route.query.estado || null)
+
+// Sincronizar cambios de filtros con la URL (sin recargar la página)
+watch([tipo, filtroEstado], ([newTipo, newEstado]) => {
+  router.replace({ query: { tipo: newTipo, estado: newEstado || undefined } })
+})
+
 const eventos = ref([])
 const sitios = ref([])
 const loading = ref(false)
@@ -394,6 +404,7 @@ function abrirModalEdicion(item) {
   }
 }
 
+// Escucha el cambio de tipo para recargar datos automáticamente
 watch(tipo, () => cargarDatos())
 
 onMounted(() => {
