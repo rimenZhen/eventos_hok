@@ -22,58 +22,95 @@
     <q-tab-panels v-model="tab" animated>
       <!-- POLÍTICAS -->
       <q-tab-panel name="policies">
-        <q-card flat bordered>
-          <q-card-section>
-            <div class="text-h6">Políticas de Privacidad y Protección de Datos</div>
-            <p class="q-mt-md">
-              En <strong>El Salvador Turismo</strong> nos comprometemos a proteger sus datos personales
-              de acuerdo con la <strong>Ley de Protección de Datos Personales de El Salvador</strong>
-              (Decreto Legislativo N° 887, 2021) y el Reglamento General de Protección de Datos (GDPR)
-              cuando corresponda.
-            </p>
+  <!-- Políticas de Privacidad -->
+  <q-card flat bordered class="q-mb-md">
+    <q-card-section>
+      <div class="text-h6">Políticas de Privacidad y Protección de Datos</div>
+      <p class="q-mt-md">
+        En <strong>El Salvador Turismo</strong> nos comprometemos a proteger sus datos personales
+        de acuerdo con la <strong>Ley de Protección de Datos Personales de El Salvador</strong>
+        (Decreto Legislativo N° 887, 2021) y el Reglamento General de Protección de Datos (GDPR)
+        cuando corresponda.
+      </p>
 
-            <h6>1. Datos que recopilamos</h6>
-            <p>Recopilamos información de registro (nombre, correo, rol), datos de navegación, y contenido generado por el usuario (reseñas, favoritos, historial de viajes).</p>
+      <div class="q-mt-md">
+        <h6>1. Datos que recopilamos</h6>
+        <p>✔️ Información de registro: nombre, apellidos, correo electrónico y rol (usuario final, alcaldía o negocio).<br>
+        ✔️ Datos de navegación: interacciones con la plataforma, búsquedas y preferencias.<br>
+        ✔️ Contenido generado por el usuario: reseñas, favoritos y historial de viajes.</p>
 
-            <h6>2. Uso de la información</h6>
-            <p>Utilizamos sus datos para operar la plataforma, personalizar recomendaciones, y comunicarnos sobre eventos/negocios. No usamos sus datos para fines no autorizados.</p>
+        <h6>2. Uso de la información</h6>
+        <p>✔️ Operar y mejorar la plataforma.<br>
+        ✔️ Personalizar recomendaciones de eventos, sitios y negocios.<br>
+        ✔️ Comunicarnos sobre actividades relevantes.<br>
+        ✔️ <strong>No</strong> utilizamos sus datos para fines no autorizados ni los vendemos a terceros.</p>
 
-            <h6>3. Base legal del tratamiento</h6>
-            <p>El tratamiento de sus datos se basa en: (i) su consentimiento explícito al registrarse, (ii) la ejecución de un contrato (prestación del servicio), y (iii) nuestro interés legítimo en mejorar la plataforma.</p>
+        <h6>3. Base legal del tratamiento</h6>
+        <p>El tratamiento de sus datos se fundamenta en:<br>
+        (i) su <strong>consentimiento explícito</strong> al registrarse,<br>
+        (ii) la <strong>ejecución del contrato</strong> de prestación del servicio, y<br>
+        (iii) nuestro <strong>interés legítimo</strong> en mejorar la plataforma.</p>
 
-            <h6>4. Compartición de datos</h6>
-            <p>No vendemos sus datos. Sus datos se comparten únicamente con alcaldías y negocios cuando usted interactúa con ellos (ej. al dejar una reseña pública). Los datos agregados (estadísticas) son anónimos.</p>
+        <h6>4. Compartición de datos</h6>
+        <p>✔️ <strong>No vendemos</strong> sus datos personales.<br>
+        ✔️ Se comparten únicamente con alcaldías o negocios cuando usted interactúa con ellos (ej. al dejar una reseña pública).<br>
+        ✔️ Los datos agregados (estadísticas) son <strong>anónimos</strong> y no permiten identificación personal.</p>
 
-            <h6>5. Seguridad</h6>
-            <p>Implementamos medidas técnicas y organizativas: hash de contraseñas con bcrypt, autenticación básica en CouchDB, comunicación HTTPS, y acceso restringido a bases de datos.</p>
+        <h6>5. Seguridad</h6>
+        <p>Implementamos medidas técnicas y organizativas:<br>
+        ✔️ Hash de contraseñas con <strong>bcrypt</strong>.<br>
+        ✔️ Autenticación básica en <strong>CouchDB</strong>.<br>
+        ✔️ Comunicación mediante <strong>HTTPS</strong>.<br>
+        ✔️ Acceso restringido a las bases de datos.</p>
 
-            <h6>6. Sus derechos (ARCO + oposición)</h6>
-            <p>Usted tiene derecho a acceder, rectificar, cancelar y oponerse al tratamiento de sus datos. Puede ejercerlos escribiendo a <strong>datos@elsalvadorturismo.com</strong> o desde su perfil de usuario.</p>
+        <h6>6. Sus derechos (ARCO + oposición)</h6>
+        <p>Usted tiene derecho a <strong>acceder, rectificar, cancelar y oponerse</strong> al tratamiento de sus datos.
+        Puede ejercer estos derechos:<br>
+        ✔️ Enviando un correo a <strong>datos@elsalvadorturismo.com</strong><br>
+        ✔️ O directamente desde su <strong>perfil de usuario</strong> en la plataforma.</p>
 
-            <h6>7. Retención de datos</h6>
-            <p>Conservamos sus datos mientras su cuenta esté activa. Si la elimina, anonimizamos los datos de reseñas y favoritos, pero conservamos información agregada con fines estadísticos.</p>
+        <h6>7. Retención de datos</h6>
+        <p>Conservamos sus datos <strong>mientras su cuenta esté activa</strong>. Si la elimina:<br>
+        ✔️ Los datos de reseñas y favoritos se <strong>anonimizan</strong> (se elimina su identidad).<br>
+        ✔️ Conservamos información agregada con fines estadísticos, pero no asociada a usted.</p>
 
-            <h6>8. Actualizaciones de esta política</h6>
-            <p>Notificaremos cambios significativos por correo electrónico o mediante un aviso en la plataforma.</p>
+        <h6>8. Actualizaciones de esta política</h6>
+        <p>Notificaremos cambios significativos a través de:<br>
+        ✔️ Correo electrónico (si ha proporcionado uno).<br>
+        ✔️ Un aviso destacado dentro de la plataforma.</p>
+      </div>
 
-            <div class="text-caption text-grey q-mt-md">Última actualización: mayo de 2026</div>
-          </q-card-section>
-        </q-card>
+      <div class="text-caption text-grey q-mt-md">📅 Última actualización: mayo de 2026</div>
+    </q-card-section>
+  </q-card>
 
-        <q-card flat bordered class="q-mt-md">
-          <q-card-section>
-            <div class="text-h6">Términos y Condiciones de Uso</div>
-            <h6>1. Aceptación</h6>
-            <p>Al usar nuestra plataforma, acepta estos términos. Si no está de acuerdo, no utilice el servicio.</p>
-            <h6>2. Responsabilidades del usuario</h6>
-            <p>Es responsable de la veracidad de los datos proporcionados. No debe publicar contenido ilegal, ofensivo o que infrinja derechos de terceros.</p>
-            <h6>3. Responsabilidad de la plataforma</h6>
-            <p>Actuamos como intermediarios. No somos responsables por la veracidad de la información publicada por alcaldías o negocios, ni por la calidad de los servicios ofrecidos.</p>
-            <h6>4. Modificaciones</h6>
-            <p>Podemos modificar estos términos en cualquier momento. Los cambios serán notificados por correo o mediante aviso en la web.</p>
-          </q-card-section>
-        </q-card>
-      </q-tab-panel>
+  <!-- Términos y Condiciones -->
+  <q-card flat bordered>
+    <q-card-section>
+      <div class="text-h6">Términos y Condiciones de Uso</div>
+
+      <h6>1. Aceptación</h6>
+      <p>Al utilizar nuestra plataforma, <strong>acepta estos términos</strong> en su totalidad. Si no está de acuerdo, no debe usar el servicio.</p>
+
+      <h6>2. Responsabilidades del usuario</h6>
+      <p>✔️ Usted es responsable de la <strong>veracidad y actualización</strong> de los datos proporcionados.<br>
+      ✔️ No debe publicar contenido <strong>ilegal, ofensivo, difamatorio o que infrinja derechos de terceros</strong> (incluyendo propiedad intelectual).<br>
+      ✔️ El incumplimiento puede derivar en la <strong>suspensión o cancelación</strong> de su cuenta.</p>
+
+      <h6>3. Responsabilidad de la plataforma</h6>
+      <p>✔️ Actuamos como un <strong>intermediario</strong> que conecta a usuarios, alcaldías y negocios.<br>
+      ✔️ <strong>No somos responsables</strong> por la veracidad de la información publicada por alcaldías o negocios, ni por la calidad de los servicios que estos ofrezcan.<br>
+      ✔️ Tampoco garantizamos la disponibilidad continua del servicio ante fallos técnicos ajenos a nuestra voluntad.</p>
+
+      <h6>4. Modificaciones de los términos</h6>
+      <p>Nos reservamos el derecho de <strong>modificar estos términos en cualquier momento</strong>.<br>
+      Los cambios serán notificados por:<br>
+      ✔️ Correo electrónico (si está disponible).<br>
+      ✔️ Un aviso visible en la web.<br>
+      El uso continuado de la plataforma después de los cambios implica su <strong>aceptación tácita</strong>.</p>
+    </q-card-section>
+  </q-card>
+</q-tab-panel>
 
       <!-- SOBRE NOSOTROS (con fotos del equipo) -->
       <q-tab-panel name="about">
