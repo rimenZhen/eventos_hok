@@ -55,18 +55,27 @@
     </q-header>
 
     <!-- Drawer principal: se oculta dentro del panel de alcaldía -->
-    <q-drawer v-if="!isAlcaldiaPanel" v-model="leftDrawerOpen" bordered>
+    <q-drawer
+      v-model="leftDrawerOpen"
+      bordered
+      show-if-above
+      overlay
+      behavior="mobile"
+      :breakpoint="1024"
+      @hide="leftDrawerOpen = false"
+      v-show="!isAlcaldiaPanel"
+    >
       <q-list>
         <q-item-label header>Navegación</q-item-label>
 
-        <q-item clickable tag="a" href="/">
+        <q-item clickable to="/" @click="leftDrawerOpen = false">
           <q-item-section avatar>
             <q-icon name="home" />
           </q-item-section>
           <q-item-section>Inicio</q-item-section>
         </q-item>
 
-        <q-item clickable tag="a" href="/descubre">
+        <q-item clickable to="/descubre" @click="leftDrawerOpen = false">
           <q-item-section avatar>
             <q-icon name="search" />
           </q-item-section>
@@ -94,7 +103,7 @@
 
           <!-- Links según rol -->
           <template v-if="auth.rol === 'alcaldia'">
-            <q-item clickable href="/alcaldia">
+            <q-item clickable to="/alcaldia" @click="leftDrawerOpen = false">
               <q-item-section avatar>
                 <q-icon name="dashboard" />
               </q-item-section>
@@ -103,7 +112,7 @@
           </template>
 
           <template v-if="auth.rol === 'negocio'">
-            <q-item clickable href="/negocio">
+            <q-item clickable to="/negocio" @click="leftDrawerOpen = false">
               <q-item-section avatar>
                 <q-icon name="store" />
               </q-item-section>
@@ -151,15 +160,18 @@ const isAlcaldiaPanel = computed(() => {
 })
 
 function toggleLeftDrawer() {
+  if (isAlcaldiaPanel.value) return
   leftDrawerOpen.value = !leftDrawerOpen.value
 }
 
 function logout() {
   auth.logout()
+  leftDrawerOpen.value = false
   router.push('/')
 }
 
 function goToProfile() {
+  leftDrawerOpen.value = false
   if (auth.rol === 'negocio') {
     router.push('/negocio/perfil')
   } else {
@@ -168,6 +180,7 @@ function goToProfile() {
 }
 
 function goToFavoritos() {
+  leftDrawerOpen.value = false
   router.push('/usuario/favoritos')
 }
 

@@ -14,6 +14,7 @@
 import { computed } from 'vue'
 import { useAuthStore } from 'src/stores/auth'
 import { usuariosAPI } from 'src/api/usuarios'
+import { negocioAPI } from 'src/api/negocio'
 
 const props = defineProps({
   tipo: { type: String, required: true },  // 'evento', 'sitio', 'negocio'
@@ -44,6 +45,10 @@ async function toggleFavorito() {
   try {
     if (esFavorito.value) {
       await usuariosAPI.removeFavorito(auth.user._id, props.tipo, props.item._id)
+      // Registrar en estadísticas del negocio si es tipo 'negocio'
+      if (props.tipo === 'negocio') {
+        await negocioAPI.removeFavoritoAñadido(props.item._id, auth.user._id)
+      }
     } else {
       const snapshot = {
         _id: props.item._id,
@@ -52,6 +57,14 @@ async function toggleFavorito() {
         municipio: props.item.municipio
       }
       await usuariosAPI.addFavorito(auth.user._id, props.tipo, snapshot)
+      // Registrar en estadísticas del negocio si es tipo 'negocio'
+      if (props.tipo === 'negocio') {
+        await negocioAPI.recordFavoritoAñadido(props.item._id, {
+          userId: auth.user._id,
+          userName: auth.user.nombre || 'Usuario',
+          email: auth.user.email || null
+        })
+      }
     }
     await auth.refreshUser()
   } catch (e) {

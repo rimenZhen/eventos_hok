@@ -75,5 +75,42 @@ export const usuariosAPI = {
       detalle.historial_viajes.push(visita)
       await couch.put(DB, doc)
     }
+  },
+
+  // Enviar/Reenenviar solicitud de aprobación del negocio a la alcaldía
+  async submitNegocioApprovalRequest(userId) {
+    const doc = await couch.get(DB, userId)
+    if (!doc.detalles?.detalle_negocio) {
+      throw new Error('No se encontraron detalles del negocio')
+    }
+
+    const distritoClave = doc.detalles.detalle_negocio.distrito
+    if (!distritoClave) {
+      throw new Error('El negocio debe tener un distrito seleccionado antes de enviar la solicitud')
+    }
+
+    const alcaldiaResult = await couch.find(DB, {
+      type: 'usuario',
+      rol: 'alcaldia',
+      'detalles.detalle_alcaldia.distrito': distritoClave
+    })
+
+    if (alcaldiaResult.docs.length === 0) {
+      throw new Error('No se encontró una alcaldía asociada a ese distrito')
+    }
+
+    const alcaldiaDestino = alcaldiaResult.docs[0]
+
+    doc.detalles.detalle_negocio.estado_solicitud = 'pendiente'
+    doc.detalles.detalle_negocio.fecha_solicitud = new Date().toISOString()
+    doc.detalles.detalle_negocio.fue_rechazado = false
+    doc.detalles.detalle_negocio.alcaldia_destino = {
+      _id: alcaldiaDestino._id,
+      nombre_institucional: alcaldiaDestino.detalles?.detalle_alcaldia?.nombre_institucional || '',
+      departamento: alcaldiaDestino.detalles?.detalle_alcaldia?.departamento || '',
+      distrito: alcaldiaDestino.detalles?.detalle_alcaldia?.distrito || '',
+      municipio: alcaldiaDestino.detalles?.detalle_alcaldia?.municipio || ''
+    }
+    return couch.put(DB, doc)
   }
 }

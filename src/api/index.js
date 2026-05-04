@@ -99,6 +99,24 @@ export const couch = {
     }
     return res.json()
   },
+
+  deleteAttachment: async (imgDocId, rev, attachmentName) => {
+    const url = `${couchUrl}/${dbImages}/${encodeURIComponent(imgDocId)}/${encodeURIComponent(attachmentName)}?rev=${rev}`
+    const res = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        Authorization: authHeader
+      }
+    })
+    if (!res.ok) {
+      const error = new Error(`Error al eliminar imagen: ${res.status}`)
+      try { error.details = await res.json() } catch { /* */ }
+      throw error
+    }
+    const response = await res.json()
+    return { _id: response.id, _rev: response.rev }
+  },
+
   // Añadir dentro de 'couch' en src/api/index.js
 
   // Subir una imagen para una entidad (evento, sitio, negocio, usuario)

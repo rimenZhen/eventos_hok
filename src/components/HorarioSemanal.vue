@@ -8,7 +8,7 @@
     >
       <div class="col-3">{{ dia.nombre }}</div>
       <div class="col-2">
-        <q-toggle v-model="dia.abierto" color="positive" />
+        <q-toggle v-model="dia.abierto" color="positive" :disable="props.readonly" />
       </div>
       <div v-if="dia.abierto" class="col-7 row q-col-gutter-sm">
         <q-input
@@ -17,6 +17,7 @@
           label="Apertura"
           dense
           outlined
+          :disable="props.readonly"
           class="col"
         />
         <q-input
@@ -25,13 +26,14 @@
           label="Cierre"
           dense
           outlined
+          :disable="props.readonly"
           class="col"
         />
       </div>
       <div v-else class="col-7 text-grey q-pl-md">Cerrado</div>
     </div>
     <div class="row q-mt-sm">
-      <q-checkbox v-model="cerradoFestivos" label="Cerrado en festivos" />
+      <q-checkbox v-model="cerradoFestivos" label="Cerrado en festivos" :disable="props.readonly" />
     </div>
     <q-input
       v-model="nota"
@@ -46,7 +48,8 @@
 import { reactive, ref, watch } from 'vue'
 
 const props = defineProps({
-  modelValue: { type: Object, default: () => ({}) }
+  modelValue: { type: Object, default: () => ({}) },
+  readonly: { type: Boolean, default: false }
 })
 const emit = defineEmits(['update:modelValue'])
 

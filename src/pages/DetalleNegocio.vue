@@ -68,24 +68,87 @@
                     <div class="text-h6 text-weight-bold">Nuestro Catálogo</div>
                   </div>
 
-                  <div class="row q-col-gutter-md">
-                    <div v-for="(item, idx) in negocio.catalogo" :key="idx" class="col-6 col-sm-4 flex">
-                      <q-card flat bordered class="product-card full-height column card-adaptable">
-                        <q-img :src="getImagenCatalogo(item.imagen)" :ratio="1" class="rounded-borders">
-                          <template v-slot:error>
-                            <div class="absolute-full flex flex-center bg-grey-3 text-grey-7 text-caption text-center">
-                              Sin foto
+                  <div class="catalog-slide-container q-mt-sm">
+                    <div class="catalog-slide-track">
+                      <div v-for="(item, idx) in negocio.catalogo" :key="idx" class="catalog-slide-item">
+                        <q-card flat bordered class="product-card card-adaptable cursor-pointer" @click="abrirDetalleProducto(idx)">
+                        <!-- Carrusel o imagen única -->
+                        <div class="image-wrapper">
+                          <q-carousel
+                            v-if="item.imagenes?.length > 1"
+                            :model-value="activeProductSlides[idx] ?? 0"
+                            @update:model-value="val => { activeProductSlides[idx] = val }"
+                            animated
+                            arrows
+                            height="160px"
+                            class="carousel"
+                          >
+                            <q-carousel-slide
+                              v-for="(imagen, imgIdx) in item.imagenes"
+                              :key="imgIdx"
+                              :name="imgIdx"
+                            >
+                              <q-img
+                                :src="getImagenCatalogo(imagen)"
+                                :ratio="1"
+                                fit="cover"
+                              >
+                                <template v-slot:error>
+                                  <div class="absolute-full flex flex-center bg-grey-3 text-grey-7 text-caption text-center">
+                                    Sin foto
+                                  </div>
+                                </template>
+                              </q-img>
+                            </q-carousel-slide>
+                          </q-carousel>
+                          <q-img
+                            v-else
+                            :src="getImagenCatalogo(item.imagenes?.[0] || item.imagen)"
+                            :ratio="1"
+                            fit="cover"
+                            class="rounded-borders"
+                          >
+                            <template v-slot:error>
+                              <div class="absolute-full flex flex-center bg-grey-3 text-grey-7 text-caption text-center">
+                                Sin foto
+                              </div>
+                            </template>
+                          </q-img>
+                        </div>
+
+                        <q-card-section class="q-pa-sm product-content">
+                          <!-- Nombre con icono de tipo -->
+                          <div class="product-info">
+                            <div class="row items-center q-mb-xs">
+                              <q-icon
+                                :name="getMeta(item.tipo).icon"
+                                :color="getMeta(item.tipo).color"
+                                size="16px"
+                                class="q-mr-xs"
+                              />
+                              <span class="text-subtitle2 text-weight-bold">{{ item.nombre }}</span>
                             </div>
-                          </template>
-                        </q-img>
-                        <q-card-section class="q-pa-sm col flex column justify-between">
-                          <div>
-                            <div class="text-subtitle2 text-weight-bold">{{ item.nombre }}</div>
-                            <div class="text-caption text-grey-7 q-mt-xs">{{ item.description || item.descripcion }}</div>
+
+                            <!-- Tipo como badge -->
+                            <q-badge
+                              v-if="item.tipo"
+                              :color="getMeta(item.tipo).color + '-2'"
+                              :text-color="getMeta(item.tipo).color + '-8'"
+                              size="sm"
+                              class="q-mt-xs"
+                            >
+                              {{ getMeta(item.tipo).label }}
+                            </q-badge>
+
+                            <!-- Descripción con truncado -->
+                            <div class="product-description text-caption text-grey-7 q-mt-sm">{{ item.descripcion || item.description }}</div>
                           </div>
-                          <div class="text-h6 text-primary q-mt-sm">${{ item.precio }}</div>
+
+                          <!-- Precio al final -->
+                          <div class="product-price text-h6 text-primary q-mt-auto">${{ item.precio }}</div>
                         </q-card-section>
-                      </q-card>
+                        </q-card>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -192,14 +255,91 @@
     <div v-else class="flex flex-center full-height">
       <q-spinner-dots color="primary" size="50px" />
     </div>
+
+    <!-- DIALOG DETALLE PRODUCTO -->
+    <q-dialog v-model="mostrarDetalleProducto">
+      <q-card v-if="productoSeleccionado" class="product-detail-dialog card-adaptable">
+        <q-card-section class="dialog-header row items-center justify-between q-pa-md">
+          <h6 class="q-my-none">{{ productoSeleccionado.nombre }}</h6>
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-separator />
+
+        <q-card-section class="q-pa-md">
+          <!-- Carrusel de imágenes -->
+          <div v-if="productoSeleccionado.imagenes?.length > 1" class="q-mb-md">
+            <q-carousel
+              v-model="slideActualDetalle"
+              animated
+              arrows
+              height="300px"
+              class="carousel-grande rounded-borders bg-dark"
+            >
+              <q-carousel-slide
+                v-for="(imagen, imgIdx) in productoSeleccionado.imagenes"
+                :key="imgIdx"
+                :name="imgIdx"
+              >
+                <q-img
+                  :src="getImagenCatalogo(imagen)"
+                  :ratio="16/9"
+                  fit="contain"
+                />
+              </q-carousel-slide>
+            </q-carousel>
+          </div>
+          <div v-else class="q-mb-md">
+            <q-img
+              :src="getImagenCatalogo(productoSeleccionado.imagenes?.[0] || productoSeleccionado.imagen)"
+              :ratio="16/9"
+              fit="contain"
+              class="bg-dark rounded-borders"
+            />
+          </div>
+
+          <!-- Información del producto -->
+          <div>
+            <!-- Tipo con icono -->
+            <div class="row items-center q-mb-md">
+              <q-icon
+                :name="getMeta(productoSeleccionado.tipo).icon"
+                :color="getMeta(productoSeleccionado.tipo).color"
+                size="24px"
+                class="q-mr-sm"
+              />
+              <q-badge
+                v-if="productoSeleccionado.tipo"
+                :color="getMeta(productoSeleccionado.tipo).color + '-2'"
+                :text-color="getMeta(productoSeleccionado.tipo).color + '-8'"
+              >
+                {{ getMeta(productoSeleccionado.tipo).label }}
+              </q-badge>
+            </div>
+
+            <!-- Descripción -->
+            <div class="q-mb-md">
+              <p class="text-body2 text-justify text-color-adaptable q-my-none">
+                {{ productoSeleccionado.descripcion || productoSeleccionado.description }}
+              </p>
+            </div>
+
+            <!-- Precio -->
+            <div class="text-h5 text-primary text-weight-bold">
+              ${{ productoSeleccionado.precio }}
+            </div>
+          </div>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, reactive } from 'vue'
 import { useRoute } from 'vue-router'
-import { useQuasar } from 'quasar'
 import { couch } from 'src/api/index'
+import { negocioAPI } from 'src/api/negocio'
 import { useAuthStore } from 'src/stores/auth'
 import { useConfiguracionStore } from 'src/stores/configuracion'
 
@@ -208,7 +348,18 @@ import BotonFavorito from 'src/components/BotonFavorito.vue'
 /** import BotonVisita from 'src/components/BotonVisita.vue'**/
 import MapaMini from 'src/components/MapaMini.vue'
 
-const $q = useQuasar()
+// META TIPOS DE PRODUCTO
+const PRODUCT_TYPE_META = {
+  almuerzos: { color: 'orange', icon: 'lunch_dining', label: 'Almuerzos' },
+  desayunos: { color: 'amber', icon: 'free_breakfast', label: 'Desayunos' },
+  cenas: { color: 'deep-orange', icon: 'dinner_dining', label: 'Cenas' },
+  comidas_rapidas: { color: 'red', icon: 'fastfood', label: 'Comidas Rápidas' },
+  bebidas: { color: 'blue', icon: 'local_drink', label: 'Bebidas' },
+  viajes: { color: 'indigo', icon: 'flight', label: 'Viajes' },
+  senderismo: { color: 'green', icon: 'hiking', label: 'Senderismo' },
+  artesanias: { color: 'brown', icon: 'palette', label: 'Artesanías' }
+}
+
 const route = useRoute()
 const auth = useAuthStore()
 const configStore = useConfiguracionStore()
@@ -216,6 +367,10 @@ const docImagenes = ref(null)
 const negocio = ref(null)
 const error = ref(null)
 const imgError = ref(false)
+const mostrarDetalleProducto = ref(false)
+const activeProductSlides = reactive({})
+const slideActualDetalle = ref(0)
+const productoSeleccionado = ref(null)
 
 // Función para extraer texto de objetos de Quasar (QSelect)
 const extraerLabel = (valor) => {
@@ -224,24 +379,6 @@ const extraerLabel = (valor) => {
   return valor.label || valor.nombre || ''
 }
 
-// Nueva función para obtener la clave de categoría (soporta string u objeto {label, value})
-function extractCategoryKey(cat) {
-  if (!cat) return ''
-  if (typeof cat === 'string') return cat
-  return cat.value || cat.clave || cat.label || ''
-}
-
-const categoriaKey = computed(() => extractCategoryKey(negocio.value?.categoria).toLowerCase().trim())
-
-const categoriaData = computed(() => {
-  const key = categoriaKey.value
-  const items = configStore.categoriasNegocios
-  const found = items.find(item => item.clave.toLowerCase() === key || item.nombre.toLowerCase() === key)
-  return found
-    ? { nombre: found.nombre, color: found.color }
-    : { nombre: 'General', color: '#9E9E9E' }
-})
-
 const imgDocId = computed(() => 'neg_' + negocio.value?._id)
 
 const imagenPortada = computed(() => {
@@ -249,6 +386,8 @@ const imagenPortada = computed(() => {
 
   if (negocio.value.imagen_portada) {
     return couch.getImageUrl(imgDocId.value, negocio.value.imagen_portada)
+
+// Nueva función para obtener la clave de categoría (soporta string u objeto {label, value})
   }
 
   if (docImagenes.value && docImagenes.value._attachments) {
@@ -265,6 +404,14 @@ const getImagenCatalogo = (nombre) => {
   return couch.getImageUrl(imgDocId.value, nombre)
 }
 
+function getMeta(tipo) {
+  return PRODUCT_TYPE_META[tipo] || {
+    icon: 'category',
+    color: 'grey',
+    label: tipo || 'Sin tipo'
+  }
+}
+
 const horarioFiltrado = computed(() => {
   if (!negocio.value?.horario) return []
   const diasSemana = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo']
@@ -274,6 +421,22 @@ const horarioFiltrado = computed(() => {
       nombre: nombre.charAt(0).toUpperCase() + nombre.slice(1),
       datos
     }))
+})
+
+const categoriaKey = computed(() => {
+  if (!negocio.value) return null
+  const c = negocio.value.categoria || negocio.value.categoría || null
+  if (!c) return null
+  if (typeof c === 'string') return c
+  return c.value || c.clave || c.label || null
+})
+
+const categoriaData = computed(() => {
+  const key = categoriaKey.value
+  if (!key) return { nombre: 'Sin categoría', color: 'grey' }
+  const found = configStore.categoriasNegocios?.find(cat => cat.clave === key || cat.value === key || cat.label === key)
+  if (found) return { nombre: found.nombre || found.label || key, color: found.color || 'grey' }
+  return { nombre: key, color: 'grey' }
 })
 
 const comoLlegar = () => {
@@ -290,10 +453,21 @@ const formatDate = (isoString) => {
 async function cargarNegocio() {
   try {
     const id = route.params.id
+
+    // 1. Cargar los datos del negocio
     negocio.value = await couch.get(import.meta.env.VITE_DB_DATA, id)
+
+    // 2. Cargar el documento de imágenes para poblar docImagenes
     try {
       docImagenes.value = await couch.get('eventos_imagenes', `neg_${id}`)
     } catch (imgErr) {
+
+    // 1. Cargar los datos del negocio
+    negocio.value = await negocioAPI.getNegocioById(id)
+
+    // 2. Registrar visita al perfil del negocio
+    const userId = auth.user?._id || null
+    negocioAPI.recordProfileView(id, { userId }).catch(err => console.warn('Error registrando visita al perfil', err))
       console.warn('El negocio no tiene documento de imágenes asociado aún.', imgErr)
     }
   } catch {
@@ -303,8 +477,10 @@ async function cargarNegocio() {
 
 async function agregarResena({ calificacion, comentario }) {
   if (!auth.user) return
-  $q.loading.show()
   try {
+    // Recargar el documento más reciente para evitar conflictos de versión
+    const docFresco = await couch.get(import.meta.env.VITE_DB_DATA, negocio.value._id)
+    
     const nuevaResena = {
       usuario_nombres: auth.user.nombres,
       usuario_apellidos: auth.user.apellidos,
@@ -312,19 +488,19 @@ async function agregarResena({ calificacion, comentario }) {
       comentario,
       fecha: new Date().toISOString()
     }
-    negocio.value.reseñas = negocio.value.reseñas || []
-    negocio.value.reseñas.push(nuevaResena)
+    
+    docFresco.reseñas = docFresco.reseñas || []
+    docFresco.reseñas.push(nuevaResena)
 
-    const total = negocio.value.reseñas.reduce((sum, r) => sum + r.calificacion, 0)
-    negocio.value.calificacion_promedio = total / negocio.value.reseñas.length
+    const total = docFresco.reseñas.reduce((sum, r) => sum + r.calificacion, 0)
+    docFresco.calificacion_promedio = total / docFresco.reseñas.length
 
-    await couch.put(import.meta.env.VITE_DB_DATA, negocio.value)
-    $q.notify({ type: 'positive', message: '¡Gracias por tu opinión!' })
+    await couch.put(import.meta.env.VITE_DB_DATA, docFresco)
+    
+    // Recargar para mostrar la nueva reseña
     await cargarNegocio()
-  } catch {
-    $q.notify({ type: 'negative', message: 'Error al guardar reseña' })
-  } finally {
-    $q.loading.hide()
+  } catch (err) {
+    console.error('Error al guardar reseña:', err)
   }
 }
 
@@ -370,8 +546,12 @@ onMounted(async () => {
 }
 
 .product-card {
-  transition: transform 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s;
   border-radius: 12px;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .product-card:hover {
@@ -379,7 +559,125 @@ onMounted(async () => {
   box-shadow: 0 5px 15px rgba(0,0,0,0.1);
 }
 
+/* Contenedor de tarjetas uniforme */
+.product-col {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 380px;
+}
+
 .resena-card {
   background-color: #f9f9f9;
+}
+
+/* Estilos para el carrusel en tarjetas de catálogo */
+.image-wrapper {
+  padding: 6px;
+  height: 160px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.carousel {
+  border-radius: 8px;
+  height: 160px;
+}
+
+/* Horizontal sliding track for catalog */
+.catalog-slide-container {
+  width: 100%;
+  overflow: hidden;
+}
+
+.catalog-slide-track {
+  display: flex;
+  gap: 0.8rem;
+  padding: 6px 4px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+}
+
+.catalog-slide-track::-webkit-scrollbar {
+  height: 8px;
+}
+.catalog-slide-track::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.12);
+  border-radius: 4px;
+}
+
+.catalog-slide-item {
+  flex: 0 0 260px; /* fixed item width, adjust for responsiveness */
+  scroll-snap-align: start;
+}
+
+.catalog-slide-item .product-card {
+  height: 100%;
+}
+
+@media (max-width: 600px) {
+  .catalog-slide-item { flex: 0 0 200px; }
+}
+
+/* Contenido de la tarjeta con layout flexible */
+.product-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+.product-info {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+/* Descripción con truncado a 2 líneas */
+.product-description {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+  max-height: 2.8em;
+  word-break: break-word;
+}
+
+.product-price {
+  flex-shrink: 0;
+  margin-top: auto;
+  padding-top: 0.5rem;
+}
+
+/* Estilos para el dialog de detalle del producto */
+.product-detail-dialog {
+  width: 100%;
+  max-width: 500px;
+  border-radius: 12px;
+}
+
+.dialog-header {
+  padding: 16px;
+  background-color: rgba(33, 150, 243, 0.08);
+}
+
+.carousel-grande {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Modo oscuro para texto en diálogo */
+.body--dark .product-detail-dialog {
+  background-color: #1d1d1d;
+}
+
+.body--dark .dialog-header {
+  background-color: rgba(33, 150, 243, 0.15);
 }
 </style>
