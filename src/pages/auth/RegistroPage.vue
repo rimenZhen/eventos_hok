@@ -49,7 +49,7 @@
             :rules="[val => !!val || 'Selecciona un rol']"
           />
 
-          <!-- Campos adicionales según rol -->
+          <!-- Negocio -->
           <template v-if="form.rol === 'negocio'">
             <q-input
               v-model="form.detalle_negocio.nombre_comercial"
@@ -95,6 +95,7 @@
             </div>
           </template>
 
+          <!-- Alcaldía -->
           <template v-if="form.rol === 'alcaldia'">
             <q-input
               v-model="form.detalle_alcaldia.nombre_institucional"
@@ -115,18 +116,9 @@
               outlined
               emit-value
               map-options
-              @update:model-value="handleDepartamentoAlcaldiaChange"
-            />
-            <q-select
-              v-model="form.detalle_alcaldia.distrito"
-              :options="distritosOptions"
-              label="Distrito"
-              outlined
-              class="q-mt-sm"
-              emit-value
-              map-options
-              :disable="!form.detalle_alcaldia.departamento"
-              @update:model-value="handleDistritoAlcaldiaChange"
+              lazy-rules
+              :rules="[val => !!val || 'Selecciona un departamento']"
+              @update:model-value="handleDepartamentoChange"
             />
             <q-select
               v-model="form.detalle_alcaldia.municipio"
@@ -136,7 +128,11 @@
               class="q-mt-sm"
               emit-value
               map-options
-              :disable="!form.detalle_alcaldia.distrito"
+              lazy-rules
+              :rules="[val => !!val || 'Selecciona un municipio']"
+              :disable="!form.detalle_alcaldia.departamento || loadingMunicipios"
+              :loading="loadingMunicipios"
+              :hint="municipiosOptions.length === 0 && form.detalle_alcaldia.departamento ? 'No hay municipios disponibles' : ''"
             />
           </template>
 
@@ -171,6 +167,9 @@ import { reactive, ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from 'src/stores/auth'
 import { useConfiguracionStore } from 'src/stores/configuracion'
+import { couch } from 'src/api/index'
+
+const DB = import.meta.env.VITE_DB_DATA // misma base de datos de configuraciones/usuarios
 
 const authStore = useAuthStore()
 const configStore = useConfiguracionStore()
@@ -192,42 +191,60 @@ const form = reactive({
     nombre_comercial: '',
     nit_registro: '',
     contacto: '',
-    localizacion: {
-      lat: '',
-      lng: '',
-      direccion: ''
-    }
+    localizacion: { lat: '', lng: '', direccion: '' }
   },
   detalle_alcaldia: {
     nombre_institucional: '',
     telefono: '',
     departamento: null,
-    distrito: null,
     municipio: null
   }
 })
 
 const gpsLoading = ref(false)
 const gpsError = ref('')
+const registeredMunicipios = ref([])  // municipios ya ocupados
+const loadingMunicipios = ref(false)
 
 const departamentosOptions = computed(() => configStore.getDepartamentosOptions())
+
 const getValue = (value) => {
   if (!value) return null
   if (typeof value === 'object') return value.value || value.clave || null
   return value
 }
 
-const distritosOptions = computed(() => configStore.getDistritosByDepartamento(getValue(form.detalle_alcaldia.departamento)))
-const municipiosOptions = computed(() => configStore.getMunicipiosByDistrito(getValue(form.detalle_alcaldia.distrito)))
+// Municipios (alcaldías) filtrados por departamento y excluyendo los ya registrados
+const municipiosOptions = computed(() => {
+  const deptoClave = getValue(form.detalle_alcaldia.departamento)
+  if (!deptoClave) return []
+  return configStore.alcaldias
+    .filter(item => item.departamento === deptoClave && item.activo)
+    .filter(item => !registeredMunicipios.value.includes(item.clave))
+    .map(item => ({ label: item.nombre, value: item.clave }))
+})
 
-function handleDepartamentoAlcaldiaChange(value) {
-  form.detalle_alcaldia.departamento = value
-  form.detalle_alcaldia.distrito = null
-  form.detalle_alcaldia.municipio = null
+async function fetchRegisteredAlcaldias() {
+  loadingMunicipios.value = true
+  try {
+    // Consulta todos los usuarios con rol 'alcaldia' (puedes filtrar activos:true si lo prefieres)
+    const result = await couch.find(DB, {
+      type: 'usuario',
+      rol: 'alcaldia'
+    })
+    registeredMunicipios.value = result.docs
+      .map(doc => doc.detalles?.detalle_alcaldia?.municipio)
+      .filter(Boolean)
+  } catch (err) {
+    console.error('Error al obtener alcaldías registradas:', err)
+    registeredMunicipios.value = [] // en caso de error, no bloquear la interfaz
+  } finally {
+    loadingMunicipios.value = false
+  }
 }
 
-function handleDistritoAlcaldiaChange(value) {
-  form.detalle_alcaldia.distrito = value
+function handleDepartamentoChange(value) {
+  form.detalle_alcaldia.departamento = value
   form.detalle_alcaldia.municipio = null
 }
 
@@ -235,16 +252,15 @@ onMounted(async () => {
   if (configStore.departamentos.length === 0) {
     await configStore.fetchCatalogos()
   }
+  await fetchRegisteredAlcaldias()
 })
 
 function usarUbicacionActual() {
   gpsError.value = ''
-
   if (!navigator.geolocation) {
     gpsError.value = 'Tu navegador no soporta geolocalización.'
     return
   }
-
   gpsLoading.value = true
   navigator.geolocation.getCurrentPosition(
     (position) => {
@@ -273,7 +289,6 @@ async function onSubmit() {
     await configStore.fetchCatalogos()
   }
 
-  // Construir objeto detalles según rol
   let detalles = {}
   if (form.rol === 'usuario_final') {
     detalles = { detalle_usuario: {} }
@@ -292,9 +307,9 @@ async function onSubmit() {
   } else if (form.rol === 'alcaldia') {
     detalles = {
       detalle_alcaldia: {
-        ...form.detalle_alcaldia,
+        nombre_institucional: form.detalle_alcaldia.nombre_institucional,
+        telefono: form.detalle_alcaldia.telefono,
         departamento: form.detalle_alcaldia.departamento,
-        distrito: form.detalle_alcaldia.distrito,
         municipio: form.detalle_alcaldia.municipio,
         foto_perfil: ''
       }
