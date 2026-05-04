@@ -36,8 +36,13 @@
                   </div>
                 </div>
 
-                <!-- Categoría con chip -->
-                <q-chip :color="categoriaInfo.color" text-color="white" :label="categoriaInfo.nombre" class="q-mt-sm" />
+                <!-- Categoría con chip mejorado -->
+                <q-chip
+                  :style="{ backgroundColor: categoriaData.color }"
+                  text-color="white"
+                  :label="categoriaData.nombre"
+                  class="q-mt-sm"
+                />
 
                 <!-- Fecha y hora con iconos -->
                 <div class="row items-center q-mt-md q-gutter-x-md">
@@ -211,6 +216,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { couch } from 'src/api/index'
 import { useAuthStore } from 'src/stores/auth'
+import { useConfiguracionStore } from 'src/stores/configuracion'
 import FormularioResena from 'src/components/FormularioResena.vue'
 import MapaMini from 'src/components/MapaMini.vue'
 import BotonFavorito from 'src/components/BotonFavorito.vue'
@@ -220,6 +226,8 @@ const $q = useQuasar()
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+const configStore = useConfiguracionStore()
+
 const evento = ref(null)
 const error = ref(null)
 const orgLogoError = ref(false)
@@ -231,26 +239,25 @@ const formatDate = (isoString) => {
   return date.toLocaleDateString('es-SV', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
-// Categoría (soporta string u objeto)
-const categoriaRaw = computed(() => {
-  const cat = evento.value?.categoria
+// ---- CATEGORÍA DESDE CONFIGURACIÓN ----
+function extractCategoryKey(cat) {
   if (!cat) return ''
   if (typeof cat === 'string') return cat
-  return cat.nombre || cat.clave || ''
-})
+  // Objeto típico { label: 'Música', value: 'musica' }
+  return cat.value || cat.clave || cat.label || ''
+}
 
-const categoriaInfo = computed(() => {
-  const clave = categoriaRaw.value.toLowerCase()
-  const map = {
-    deportes: { nombre: 'Deportes', color: 'blue' },
-    gastronomia: { nombre: 'Gastronomía', color: 'green' },
-    musica: { nombre: 'Música', color: 'purple' },
-    cultura: { nombre: 'Cultura', color: 'teal' },
-    naturaleza: { nombre: 'Naturaleza', color: 'lime' },
-    feria: { nombre: 'Feria', color: 'orange' }
-  }
-  return map[clave] || { nombre: categoriaRaw.value || 'Evento', color: 'grey' }
+const categoriaKey = computed(() => extractCategoryKey(evento.value?.categoria).toLowerCase().trim())
+
+const categoriaData = computed(() => {
+  const key = categoriaKey.value
+  const items = configStore.categoriasEventos
+  const found = items.find(item => item.clave.toLowerCase() === key || item.nombre.toLowerCase() === key)
+  return found
+    ? { nombre: found.nombre, color: found.color }
+    : { nombre: 'Evento', color: '#9E9E9E' }
 })
+// ------------------------------------
 
 // Departamento (soporta string u objeto)
 const nombreDepartamento = computed(() => {
@@ -331,7 +338,6 @@ const imagenPortada = computed(() => {
 const negociosCercanos = ref([])
 const cargarNegociosCercanos = async () => {
   if (!evento.value?.localizacion) return
-  // Ejemplo: buscar negocios en el mismo departamento/municipio
   try {
     const result = await couch.find(import.meta.env.VITE_DB_DATA, {
       type: 'negocio',
@@ -376,7 +382,6 @@ const comoLlegar = () => {
 }
 
 const guardarCalendario = () => {
-  // Descargar archivo .ics o usar API del calendario nativo
   $q.notify({ type: 'info', message: 'Funcionalidad en desarrollo: guardar en calendario' })
 }
 
@@ -387,18 +392,6 @@ const setRecordatorio = () => {
 const verImagen = (nombre) => {
   const url = getImagenUrl(nombre)
   window.open(url, '_blank')
-}
-
-// Cargar evento
-async function cargarEvento() {
-  try {
-    const id = route.params.id
-    evento.value = await couch.get(import.meta.env.VITE_DB_DATA, id)
-    await cargarNegociosCercanos()
-  } catch (err) {
-    error.value = 'Evento no encontrado o error de conexión'
-    console.error(err)
-  }
 }
 
 // Agregar reseña (misma lógica original, adaptada)
@@ -444,10 +437,6 @@ async function agregarResena({ calificacion, comentario }) {
     $q.notify({ type: 'negative', message: 'Error al guardar la reseña' })
   }
 }
-onMounted(async () => {
-  await cargarEvento()
-
-})
 
 const getImagenUrl = (nombre) => {
   if (!nombre || !evento.value) return ''
@@ -455,7 +444,23 @@ const getImagenUrl = (nombre) => {
   return couch.getImageUrl(docId, nombre)
 }
 
-// Además, vigila cambios en evento
+// Cargar evento y configuraciones
+async function cargarEvento() {
+  try {
+    const id = route.params.id
+    evento.value = await couch.get(import.meta.env.VITE_DB_DATA, id)
+    await cargarNegociosCercanos()
+  } catch (err) {
+    error.value = 'Evento no encontrado o error de conexión'
+    console.error(err)
+  }
+}
+
+onMounted(async () => {
+  await configStore.fetchCatalogos()
+  await cargarEvento()
+})
+
 watch(() => route.params.id, () => {
   imgError.value = false
 })

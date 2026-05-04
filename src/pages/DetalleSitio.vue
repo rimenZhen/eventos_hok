@@ -36,11 +36,11 @@
                 <div class="text-h4 text-weight-bold q-mb-sm">{{ sitio.nombre }}</div>
 
                 <div class="row items-center q-mb-md">
+                  <!-- Chip de categoría actualizado -->
                   <q-chip
-                    v-if="categoriaInfo"
-                    :color="categoriaInfo.color"
+                    :style="{ backgroundColor: categoriaData.color }"
                     text-color="white"
-                    :label="categoriaInfo.nombre"
+                    :label="categoriaData.nombre"
                   />
                   <q-space />
                   <div class="row items-center">
@@ -189,15 +189,17 @@ import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { couch } from 'src/api/index'
 import { useAuthStore } from 'src/stores/auth'
+import { useConfiguracionStore } from 'src/stores/configuracion' // nueva importación
 import FormularioResena from 'src/components/FormularioResena.vue'
 import MapaMini from 'src/components/MapaMini.vue'
 import BotonFavorito from 'src/components/BotonFavorito.vue'
-/**import BotonVisita from 'src/components/BotonVisita.vue' **/
 
 const $q = useQuasar()
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+const configStore = useConfiguracionStore() // instancia del store
+
 const sitio = ref(null)
 const error = ref(null)
 const imgError = ref(false)
@@ -217,19 +219,24 @@ const horarioFiltrado = computed(() => {
     .map(([nombre, datos]) => ({ nombre, datos }))
 })
 
-const categoriaInfo = computed(() => {
-  const cat = sitio.value?.categoria
-  if (!cat) return null
-  const nombre = extraerLabel(cat)
-  const clave = nombre.toLowerCase()
-  const map = {
-    parque: { nombre: 'Parque', color: 'green' },
-    playa: { nombre: 'Playa', color: 'blue' },
-    lago: { nombre: 'Lago', color: 'light-blue' },
-    naturaleza: { nombre: 'Naturaleza', color: 'lime' }
-  }
-  return map[clave] || { nombre, color: 'primary' }
+// ---- CATEGORÍA DESDE CONFIGURACIÓN (reemplaza categoriaInfo anterior) ----
+function extractCategoryKey(cat) {
+  if (!cat) return ''
+  if (typeof cat === 'string') return cat
+  return cat.value || cat.clave || cat.label || ''
+}
+
+const categoriaKey = computed(() => extractCategoryKey(sitio.value?.categoria).toLowerCase().trim())
+
+const categoriaData = computed(() => {
+  const key = categoriaKey.value
+  const items = configStore.categoriasSitios
+  const found = items.find(item => item.clave.toLowerCase() === key || item.nombre.toLowerCase() === key)
+  return found
+    ? { nombre: found.nombre, color: found.color }
+    : { nombre: 'Sitio', color: '#9E9E9E' }
 })
+// ------------------------------------
 
 const ubicacion = computed(() => {
   const mun = extraerLabel(sitio.value?.municipio)
@@ -252,7 +259,7 @@ const cargarNegociosCercanos = async () => {
       type: 'negocio',
       estado: 'activo',
       municipio: mun
-    }, { limit: 3 }) // LÍMITE DE 3 NEGOCIOS
+    }, { limit: 3 })
     negociosCercanos.value = result.docs.map(neg => ({
       id: neg._id,
       nombre: neg.nombre_comercial,
@@ -264,7 +271,6 @@ const cargarNegociosCercanos = async () => {
   }
 }
 
-// Función para navegar al detalle del negocio
 const irANegocio = (id) => {
   router.push(`/negocio/${id}`)
 }
@@ -317,7 +323,10 @@ async function agregarResena({ calificacion, comentario }) {
   }
 }
 
-onMounted(cargarSitio)
+onMounted(async () => {
+  await configStore.fetchCatalogos() // cargar catálogos antes
+  await cargarSitio()
+})
 </script>
 
 <style scoped>
@@ -326,7 +335,6 @@ onMounted(cargarSitio)
   min-height: 100vh;
 }
 
-/* Contenedor tipo 'Glass' para los botones sobre la imagen */
 .glass-container {
   background: rgba(255, 255, 255, 0.4);
   backdrop-filter: blur(8px);

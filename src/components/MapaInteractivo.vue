@@ -429,26 +429,36 @@ function extraerLabel(val) {
   if (typeof val === 'string') return val
   return val.label || val.nombre || val.clave || ''
 }
+const quitarTildes = (str) => {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
 
 // Departamentos finales, con coordenadas
 const departamentosOpciones = computed(() => {
+  // Crea una versión sin tildes de DEPTOS_COORDS para emparejar
+  const coordsNormalizados = Object.entries(DEPTOS_COORDS).reduce((acc, [key, val]) => {
+    acc[quitarTildes(key).toLowerCase()] = val
+    return acc
+  }, {})
+
   if (props.departamentos?.length) {
     return props.departamentos
       .filter(d => d.activo !== false)
       .map(d => {
-        const nombre = extraerLabel(d).toLowerCase()
-        const coords = DEPTOS_COORDS[nombre] || {}
+        const nombre = extraerLabel(d)
+        const nombreNormalizado = quitarTildes(nombre).toLowerCase()
+        const coords = coordsNormalizados[nombreNormalizado] || {}
         return {
-          nombre: extraerLabel(d),
+          nombre: nombre,
           lat: d.lat || coords.lat,
           lng: d.lng || coords.lng,
           zoom: d.zoom || coords.zoom || 11
         }
       })
   }
-  // fallback con todos los departamentos conocidos
-  return Object.entries(DEPTOS_COORDS).map(([nombre, coords]) => ({
-    nombre: nombre.charAt(0).toUpperCase() + nombre.slice(1),
+  // fallback con todos los departamentos conocidos (usamos el mismo coordsNormalizados)
+  return Object.entries(coordsNormalizados).map(([nombreNormalizado, coords]) => ({
+    nombre: nombreNormalizado.charAt(0).toUpperCase() + nombreNormalizado.slice(1),
     ...coords
   }))
 })

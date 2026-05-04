@@ -53,10 +53,9 @@
 
                 <div class="q-mb-lg">
                   <q-chip
-                    outline
-                    color="primary"
-                    icon="storefront"
-                    :label="extraerLabel(negocio.categoria) || 'Negocio'"
+                    :style="{ backgroundColor: categoriaData.color }"
+                    text-color="white"
+                    :label="categoriaData.nombre"
                   />
                   <p class="text-body1 q-mt-md text-justify text-color-adaptable">
                     {{ negocio.descripcion }}
@@ -202,6 +201,7 @@ import { useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { couch } from 'src/api/index'
 import { useAuthStore } from 'src/stores/auth'
+import { useConfiguracionStore } from 'src/stores/configuracion'
 
 import FormularioResena from 'src/components/FormularioResena.vue'
 import BotonFavorito from 'src/components/BotonFavorito.vue'
@@ -211,6 +211,7 @@ import MapaMini from 'src/components/MapaMini.vue'
 const $q = useQuasar()
 const route = useRoute()
 const auth = useAuthStore()
+const configStore = useConfiguracionStore()
 const docImagenes = ref(null)
 const negocio = ref(null)
 const error = ref(null)
@@ -223,28 +224,39 @@ const extraerLabel = (valor) => {
   return valor.label || valor.nombre || ''
 }
 
+// Nueva función para obtener la clave de categoría (soporta string u objeto {label, value})
+function extractCategoryKey(cat) {
+  if (!cat) return ''
+  if (typeof cat === 'string') return cat
+  return cat.value || cat.clave || cat.label || ''
+}
+
+const categoriaKey = computed(() => extractCategoryKey(negocio.value?.categoria).toLowerCase().trim())
+
+const categoriaData = computed(() => {
+  const key = categoriaKey.value
+  const items = configStore.categoriasNegocios
+  const found = items.find(item => item.clave.toLowerCase() === key || item.nombre.toLowerCase() === key)
+  return found
+    ? { nombre: found.nombre, color: found.color }
+    : { nombre: 'General', color: '#9E9E9E' }
+})
+
 const imgDocId = computed(() => 'neg_' + negocio.value?._id)
 
 const imagenPortada = computed(() => {
   if (imgError.value || !negocio.value) return null
 
-  // 1. Si el negocio tiene una imagen definida explícitamente en su data
   if (negocio.value.imagen_portada) {
     return couch.getImageUrl(imgDocId.value, negocio.value.imagen_portada)
   }
 
-  // 2. Si no, extraemos la ULTIMA imagen de los attachments
   if (docImagenes.value && docImagenes.value._attachments) {
     const nombresArchivos = Object.keys(docImagenes.value._attachments)
-
     if (nombresArchivos.length > 0) {
-      // Usamos .at(-1) para obtener el último elemento del array de forma limpia
-      const ultimaImagen = nombresArchivos.at(-1)
-      return couch.getImageUrl(imgDocId.value, ultimaImagen)
+      return couch.getImageUrl(imgDocId.value, nombresArchivos.at(-1))
     }
   }
-
-  // Si no hay imágenes, retornamos null para que el template muestre el fallback
   return null
 })
 
@@ -278,19 +290,12 @@ const formatDate = (isoString) => {
 async function cargarNegocio() {
   try {
     const id = route.params.id
-
-    // 1. Cargar los datos del negocio
     negocio.value = await couch.get(import.meta.env.VITE_DB_DATA, id)
-
-    // 2. Cargar el documento de imágenes para poblar docImagenes
     try {
-      // Nota: Si usas una variable de entorno para 'eventos_imagenes', cámbiala aquí
-      // (ej. import.meta.env.VITE_DB_IMAGES)
       docImagenes.value = await couch.get('eventos_imagenes', `neg_${id}`)
     } catch (imgErr) {
       console.warn('El negocio no tiene documento de imágenes asociado aún.', imgErr)
     }
-
   } catch {
     error.value = 'Negocio no encontrado'
   }
@@ -323,7 +328,10 @@ async function agregarResena({ calificacion, comentario }) {
   }
 }
 
-onMounted(cargarNegocio)
+onMounted(async () => {
+  await configStore.fetchCatalogos()
+  await cargarNegocio()
+})
 </script>
 
 <style scoped>
