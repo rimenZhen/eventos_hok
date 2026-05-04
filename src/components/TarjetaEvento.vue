@@ -6,7 +6,12 @@
       @error="onImageError"
     >
       <div class="absolute-top-left bg-transparent q-pa-sm">
-        <q-chip :color="categoriaInfo.color" text-color="white" :label="categoriaInfo.nombre" size="sm" />
+        <q-chip
+          :style="{ backgroundColor: categoriaData.color }"
+          text-color="white"
+          :label="categoriaData.nombre"
+          size="sm"
+        />
       </div>
       <div v-if="evento.destacado" class="absolute-top-right bg-transparent q-pa-sm">
         <q-chip size="sm" color="orange" text-color="white" icon="star" label="Destacado" />
@@ -64,56 +69,35 @@
 </style>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { couch } from 'src/api/index'
 import { useQuasar } from 'quasar'
+import { useConfiguracionStore } from 'src/stores/configuracion'
 
 const $q = useQuasar()
 const props = defineProps({ evento: Object })
+const configStore = useConfiguracionStore()
 const imgError = ref(false)
 
-// Extraer nombre de categoría (string o objeto)
-const categoriaRaw = computed(() => {
-  const cat = props.evento.categoria
+// ---- CATEGORÍA DESDE CONFIGURACIÓN ----
+function extractCategoryKey(cat) {
   if (!cat) return ''
   if (typeof cat === 'string') return cat
-  // Agregamos 'label' y 'value' para evitar errores si viene de un QSelect
-  return cat.label || cat.nombre || cat.value || cat.clave || ''
+  // Objeto típico { label: 'Música', value: 'musica' }
+  return cat.value || cat.clave || cat.label || ''
+}
+
+const categoriaKey = computed(() => extractCategoryKey(props.evento.categoria).toLowerCase().trim())
+
+const categoriaData = computed(() => {
+  const key = categoriaKey.value
+  const items = configStore.categoriasEventos
+  const found = items.find(item => item.clave.toLowerCase() === key || item.nombre.toLowerCase() === key)
+  return found
+    ? { nombre: found.nombre, color: found.color }
+    : { nombre: 'Evento', color: '#9E9E9E' }
 })
-
-const categoriaInfo = computed(() => {
-  if (!categoriaRaw.value) return { nombre: 'Evento', color: 'grey' }
-
-  // Normalizar la clave para buscar en el mapa (minúsculas y sin espacios extra)
-  const clave = categoriaRaw.value.toLowerCase().trim()
-
-  // Mapa ampliado y unificado con los colores de TarjetaNegocio
-  const map = {
-    deportes: { nombre: 'Deportes', color: 'blue' },
-    gastronomia: { nombre: 'Gastronomía', color: 'deep-orange' },
-    musica: { nombre: 'Música', color: 'purple' },
-    cultura: { nombre: 'Cultura', color: 'teal' },
-    naturaleza: { nombre: 'Naturaleza', color: 'green' },
-    feria: { nombre: 'Feria', color: 'orange' },
-    religioso: { nombre: 'Religioso', color: 'indigo' },
-    artesanias: { nombre: 'Artesanías', color: 'brown' },
-    hospedaje: { nombre: 'Hospedaje', color: 'indigo' },
-    servicios: { nombre: 'Servicios', color: 'cyan' }
-  }
-
-  if (map[clave]) {
-    return map[clave]
-  }
-
-  // Fallback inteligente: si la categoría no está en el mapa,
-  // capitaliza la primera letra para que siempre se vea bien.
-  const nombreFormateado = categoriaRaw.value.charAt(0).toUpperCase() + categoriaRaw.value.slice(1).toLowerCase()
-
-  return {
-    nombre: nombreFormateado,
-    color: 'grey-8'
-  }
-})
+// ------------------------------------
 
 const nombreDepartamento = computed(() => {
   const dep = props.evento.departamento
@@ -171,4 +155,8 @@ const imagenPortada = computed(() => {
 const onImageError = () => {
   imgError.value = true
 }
+
+onMounted(async () => {
+  await configStore.fetchCatalogos()
+})
 </script>

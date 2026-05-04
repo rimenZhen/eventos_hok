@@ -4,9 +4,9 @@
       <div class="absolute-top-left bg-transparent q-pa-sm">
         <q-chip
           size="sm"
-          :color="categoriaColor"
+          :style="{ backgroundColor: categoriaData.color }"
           text-color="white"
-          :label="categoriaMostrada"
+          :label="categoriaData.nombre"
         />
       </div>
       <div v-if="negocio.destacado" class="absolute-bottom-left bg-transparent">
@@ -21,7 +21,6 @@
     </q-img>
 
     <q-card-section>
-      <!-- Calificación con estrellas -->
       <div class="row items-center q-gutter-xs q-mb-sm">
         <q-rating
           :model-value="negocio.calificacion_promedio || 0"
@@ -33,35 +32,24 @@
           {{ (negocio.calificacion_promedio || 0).toFixed(1) }} ({{ cantidadResenas }} reseñas)
         </span>
       </div>
-
-      <!-- Nombre -->
       <div class="text-h6 text-weight-bold q-mb-xs">{{ negocio.nombre_comercial }}</div>
-
-      <!-- Descripción breve -->
       <div class="text-caption text-grey-6 q-mb-sm">
         {{ descripcionCorta }}
       </div>
-
-      <!-- Ubicación (dirección) -->
       <div class="text-caption q-mb-xs" v-if="direccionMostrada">
         <q-icon name="location_on" size="xs" />
         {{ direccionMostrada }}
       </div>
-
-      <!-- Horario resumido -->
       <div class="text-caption q-mb-xs" v-if="horarioResumido">
         <q-icon name="schedule" size="xs" />
         {{ horarioResumido }}
       </div>
-
-      <!-- Indicadores extra -->
       <div class="row q-gutter-xs q-mb-xs">
         <q-badge v-if="negocio.catalogo?.length" color="positive" text-color="white" label="Menú disponible" />
         <q-badge v-if="negocio.telefono" color="primary" outline :label="negocio.telefono" />
       </div>
     </q-card-section>
 
-    <!-- Espaciador flexible para empujar el botón hacia abajo -->
     <q-space />
 
     <q-card-actions>
@@ -80,13 +68,13 @@
 <script setup>
 import { computed, ref, onMounted, watch } from 'vue'
 import { couch } from 'src/api/index'
+import { useConfiguracionStore } from 'src/stores/configuracion'
 
 const props = defineProps({ negocio: Object })
+const configStore = useConfiguracionStore()
 
-// Estado para guardar el documento de imágenes de este negocio específico
 const docImagenes = ref(null)
 
-// Función auxiliar para campos que pueden ser string u objeto
 function getDisplayField(field) {
   if (!field) return ''
   if (typeof field === 'string') return field
@@ -98,76 +86,59 @@ function getDisplayField(field) {
 
 const imgDocId = computed(() => 'neg_' + props.negocio._id)
 
-// Función para cargar dinámicamente el documento de imágenes de esta tarjeta
 async function cargarImagenes() {
   if (!props.negocio?._id) return
-
   try {
-    // Busca el documento en la base de datos de imágenes
-    // (Asegúrate de que 'eventos_imagenes' sea el nombre correcto o usa tu variable de entorno)
     docImagenes.value = await couch.get('eventos_imagenes', imgDocId.value)
   } catch {
-    // Si falla (ej. error 404 porque aún no hay imágenes para este negocio),
-    // lo dejamos null silenciosamente para que actúe el fallback.
     docImagenes.value = null
   }
 }
 
-// Imagen de portada dinámica
 const imagenPortada = computed(() => {
   if (!props.negocio) return 'https://via.placeholder.com/400x225?text=Negocio'
-
-  // 1. Si el negocio tiene una imagen definida explícitamente
   if (props.negocio.imagen_portada) {
     return couch.getImageUrl(imgDocId.value, props.negocio.imagen_portada)
   }
-
-  // 2. Si no, extraemos la ÚLTIMA imagen de los attachments
   if (docImagenes.value && docImagenes.value._attachments) {
     const nombresArchivos = Object.keys(docImagenes.value._attachments)
-
     if (nombresArchivos.length > 0) {
-      // .at(-1) selecciona el último elemento del array de nombres
       return couch.getImageUrl(imgDocId.value, nombresArchivos.at(-1))
     }
   }
-
-  // 3. Imagen por defecto si no hay ninguna
   return 'https://via.placeholder.com/400x225?text=Negocio'
 })
 
-// Categoría para el chip
-const categoriaMostrada = computed(() => {
-  const cat = getDisplayField(props.negocio.categoria)
-  if (!cat) return 'General'
-  return cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase()
-})
+// ---- CATEGORÍA DESDE CONFIGURACIÓN ----
+function extractCategoryKey(cat) {
+  if (!cat) return ''
+  if (typeof cat === 'string') return cat
+  // Objeto típico { label: 'Restaurante', value: 'restaurante' }
+  return cat.value || cat.clave || cat.label || ''
+}
 
-const categoriaColor = computed(() => {
-  const map = {
-    gastronomia: 'deep-orange',
-    hospedaje: 'indigo',
-    artesanias: 'brown',
-    servicios: 'teal',
-    general: 'grey'
-  }
-  const clave = getDisplayField(props.negocio.categoria).toLowerCase()
-  return map[clave] || 'grey'
-})
+const categoriaKey = computed(() => extractCategoryKey(props.negocio.categoria).toLowerCase().trim())
 
-// Descripción corta
+const categoriaData = computed(() => {
+  const key = categoriaKey.value
+  const items = configStore.categoriasNegocios
+  const found = items.find(item => item.clave.toLowerCase() === key || item.nombre.toLowerCase() === key)
+  return found
+    ? { nombre: found.nombre, color: found.color }
+    : { nombre: 'General', color: '#9E9E9E' }
+})
+// ------------------------------------
+
 const descripcionCorta = computed(() => {
   const desc = props.negocio.descripcion || ''
   return desc.length > 120 ? desc.substring(0, 120) + '…' : desc
 })
 
-// Dirección (si existe localizacion.direccion o municipio)
 const direccionMostrada = computed(() => {
   if (props.negocio.localizacion?.direccion) return props.negocio.localizacion.direccion
   return ''
 })
 
-// Horario resumido
 const horarioResumido = computed(() => {
   const h = props.negocio.horario
   if (!h) return null
@@ -209,12 +180,11 @@ const horarioResumido = computed(() => {
 
 const cantidadResenas = computed(() => props.negocio.reseñas?.length || 0)
 
-// Cargar las imágenes al inicializar el componente
-onMounted(() => {
+onMounted(async () => {
+  await configStore.fetchCatalogos()
   cargarImagenes()
 })
 
-// Por si la prop cambia dinámicamente sin recargar el componente completo
 watch(() => props.negocio._id, () => {
   cargarImagenes()
 })

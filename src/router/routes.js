@@ -11,6 +11,8 @@ const routes = [
       { path: 'evento/:id', name: 'detalle-evento', component: () => import('pages/DetalleEvento.vue') },
       { path: 'sitio/:id', name: 'detalle-sitio', component: () => import('pages/DetalleSitio.vue') },
       { path: 'negocio/:id', name: 'detalle-negocio', component: () => import('pages/DetalleNegocio.vue') },
+      { path: 'estadisticas', component: () => import('pages/EstadisticasPage.vue') },
+      { path: 'institucional', component: () => import('pages/InstitucionalPage.vue') },
       // usuario
       {
         path: 'usuario',

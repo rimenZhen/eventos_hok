@@ -53,10 +53,9 @@
 
                 <div class="q-mb-lg">
                   <q-chip
-                    outline
-                    color="primary"
-                    icon="storefront"
-                    :label="extraerLabel(negocio.categoria) || 'Negocio'"
+                    :style="{ backgroundColor: categoriaData.color }"
+                    text-color="white"
+                    :label="categoriaData.nombre"
                   />
                   <p class="text-body1 q-mt-md text-justify text-color-adaptable">
                     {{ negocio.descripcion }}
@@ -342,6 +341,7 @@ import { useRoute } from 'vue-router'
 import { couch } from 'src/api/index'
 import { negocioAPI } from 'src/api/negocio'
 import { useAuthStore } from 'src/stores/auth'
+import { useConfiguracionStore } from 'src/stores/configuracion'
 
 import FormularioResena from 'src/components/FormularioResena.vue'
 import BotonFavorito from 'src/components/BotonFavorito.vue'
@@ -362,6 +362,7 @@ const PRODUCT_TYPE_META = {
 
 const route = useRoute()
 const auth = useAuthStore()
+const configStore = useConfiguracionStore()
 const docImagenes = ref(null)
 const negocio = ref(null)
 const error = ref(null)
@@ -378,57 +379,23 @@ const extraerLabel = (valor) => {
   return valor.label || valor.nombre || ''
 }
 
-// Función para obtener metadatos del tipo de producto
-function getMeta(tipo) {
-  return PRODUCT_TYPE_META[tipo] || {
-    icon: 'category',
-    color: 'grey',
-    label: tipo || 'Sin tipo'
-  }
-}
-
-// Función para abrir el dialog de detalle del producto
-async function abrirDetalleProducto(idx) {
-  // registrar estadística de click (si tenemos negocio cargado)
-  try {
-    if (negocio.value?._id) {
-      const userId = auth.user?._id || null
-      const item = negocio.value.catalogo?.[idx]
-      const catalogKey = item?.catalogKey || String(idx)
-      // no queremos bloquear la UI si falla, así que no await bloqueante visible
-      negocioAPI.recordCatalogClick(negocio.value._id, catalogKey, { userId }).catch(err => console.warn('Error recordando click', err))
-    }
-  } catch (err) {
-    console.warn('Error al intentar registrar estadistica', err)
-  }
-
-  productoSeleccionado.value = negocio.value.catalogo[idx]
-  slideActualDetalle.value = 0
-  mostrarDetalleProducto.value = true
-}
-
 const imgDocId = computed(() => 'neg_' + negocio.value?._id)
 
 const imagenPortada = computed(() => {
   if (imgError.value || !negocio.value) return null
 
-  // 1. Si el negocio tiene una imagen definida explícitamente en su data
   if (negocio.value.imagen_portada) {
     return couch.getImageUrl(imgDocId.value, negocio.value.imagen_portada)
+
+// Nueva función para obtener la clave de categoría (soporta string u objeto {label, value})
   }
 
-  // 2. Si no, extraemos la ULTIMA imagen de los attachments
   if (docImagenes.value && docImagenes.value._attachments) {
     const nombresArchivos = Object.keys(docImagenes.value._attachments)
-
     if (nombresArchivos.length > 0) {
-      // Usamos .at(-1) para obtener el último elemento del array de forma limpia
-      const ultimaImagen = nombresArchivos.at(-1)
-      return couch.getImageUrl(imgDocId.value, ultimaImagen)
+      return couch.getImageUrl(imgDocId.value, nombresArchivos.at(-1))
     }
   }
-
-  // Si no hay imágenes, retornamos null para que el template muestre el fallback
   return null
 })
 
@@ -464,21 +431,21 @@ async function cargarNegocio() {
     const id = route.params.id
 
     // 1. Cargar los datos del negocio
+    negocio.value = await couch.get(import.meta.env.VITE_DB_DATA, id)
+
+    // 2. Cargar el documento de imágenes para poblar docImagenes
+    try {
+      docImagenes.value = await couch.get('eventos_imagenes', `neg_${id}`)
+    } catch (imgErr) {
+
+    // 1. Cargar los datos del negocio
     negocio.value = await negocioAPI.getNegocioById(id)
 
     // 2. Registrar visita al perfil del negocio
     const userId = auth.user?._id || null
     negocioAPI.recordProfileView(id, { userId }).catch(err => console.warn('Error registrando visita al perfil', err))
-
-    // 3. Cargar el documento de imágenes para poblar docImagenes
-    try {
-      // Nota: Si usas una variable de entorno para 'eventos_imagenes', cámbiala aquí
-      // (ej. import.meta.env.VITE_DB_IMAGES)
-      docImagenes.value = await couch.get('eventos_imagenes', `neg_${id}`)
-    } catch (imgErr) {
       console.warn('El negocio no tiene documento de imágenes asociado aún.', imgErr)
     }
-
   } catch {
     error.value = 'Negocio no encontrado'
   }
@@ -513,7 +480,10 @@ async function agregarResena({ calificacion, comentario }) {
   }
 }
 
-onMounted(cargarNegocio)
+onMounted(async () => {
+  await configStore.fetchCatalogos()
+  await cargarNegocio()
+})
 </script>
 
 <style scoped>
