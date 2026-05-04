@@ -5,15 +5,20 @@ const routes = [
     children: [
       { path: '', name: 'inicio', component: () => import('pages/IndexPage.vue') },
       { path: 'descubre', name: 'descubre', component: () => import('pages/DescubreMas.vue') },
+      
       // Auth
       { path: 'auth/login', name: 'login', component: () => import('pages/auth/LoginPage.vue') },
       { path: 'auth/registro', name: 'registro', component: () => import('pages/auth/RegistroPage.vue') },
+      
+      // Detalles
       { path: 'evento/:id', name: 'detalle-evento', component: () => import('pages/DetalleEvento.vue') },
       { path: 'sitio/:id', name: 'detalle-sitio', component: () => import('pages/DetalleSitio.vue') },
       { path: 'negocio/:id', name: 'detalle-negocio', component: () => import('pages/DetalleNegocio.vue') },
+      
       { path: 'estadisticas', component: () => import('pages/EstadisticasPage.vue') },
       { path: 'institucional', component: () => import('pages/InstitucionalPage.vue') },
-      // usuario
+
+      // Grupo Usuario (Simplificado sin redundancia de Layout)
       {
         path: 'usuario',
         meta: { requiresAuth: true, roles: ['usuario_final', 'negocio', 'alcaldia'] },
@@ -24,11 +29,11 @@ const routes = [
           { path: 'resenas', name: 'mis-resenas', component: () => import('pages/usuario/MisResenasPage.vue') }
         ]
       },
-      // alcaldia
+
+      // Grupo Alcaldia (Se quitó el component: MainLayout porque ya está en la raíz)
       {
         path: 'alcaldia',
         meta: { requiresAuth: true, roles: ['alcaldia'] },
-        component: () => import('layouts/MainLayout.vue'),
         children: [
           { path: '', name: 'dashboard-alcaldia', component: () => import('pages/alcaldia/DashboardPage.vue') },
           { path: 'eventos', name: 'gestion-eventos', component: () => import('pages/alcaldia/GestionEventosPage.vue') },
@@ -41,11 +46,11 @@ const routes = [
           { path: 'negocios', name: 'admin-negocios', component: () => import('pages/alcaldia/AdministracionNegociosPage.vue') }
         ]
       },
-      // negocio
+
+      // Grupo Negocio (Se quitó el component: MainLayout porque ya está en la raíz)
       {
         path: 'negocio',
         meta: { requiresAuth: true, roles: ['negocio'] },
-        component: () => import('layouts/MainLayout.vue'),
         children: [
           { path: '', name: 'dashboard-negocio', component: () => import('pages/negocio/DashboardPage.vue') },
           { path: 'perfil', name: 'mi-negocio', component: () => import('pages/negocio/MiNegocioPage.vue') },
@@ -57,6 +62,7 @@ const routes = [
       }
     ]
   },
+
   // Rutas de error
   {
     path: '/:catchAll(.*)*',

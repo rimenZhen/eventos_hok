@@ -101,6 +101,13 @@
             <q-item-section>Favoritos</q-item-section>
           </q-item>
 
+          <q-item v-if="auth.isLoggedIn" clickable to="/usuario/resenas" @click="leftDrawerOpen = false">
+            <q-item-section avatar>
+              <q-icon name="rate_review" />
+            </q-item-section>
+            <q-item-section>Mis reseñas</q-item-section>
+          </q-item>
+
           <!-- Links según rol -->
           <template v-if="auth.rol === 'alcaldia'">
             <q-item clickable to="/alcaldia" @click="leftDrawerOpen = false">

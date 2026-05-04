@@ -1,0 +1,324 @@
+{
+  "docs": [
+    {
+      "_id": "3391b2d5a69b5b5ab7034e1d31000cf7",
+      "type": "usuario",
+      "fecha_registro": "2026-04-29T18:16:07.821Z",
+      "nombres": "Nina",
+      "apellidos": "Lopez",
+      "rol": "negocio",
+      "activo": true,
+      "login": {
+        "correo": "nina12@gmail.com",
+        "contrasena_hash": "$2b$10$LLdzY/ijLapXB.5UBEQ.kOVjfVwjp/DWue1o8rbsjTpVFqF3CRmMm",
+        "ultimo_acceso": "2026-04-29T20:04:18.381Z",
+        "intentos_fallidos": 0
+      },
+      "detalles": {
+        "detalle_negocio": {
+          "nombre_comercial": "Doña Nina ",
+          "nit_registro": "0101-270966-103-7",
+          "contacto": "77777777",
+          "localizacion": { "lat": 0, "lng": 0, "direccion": "" },
+          "estado_solicitud": "aprobado"
+        }
+      }
+    },
+    {
+      "_id": "3391b2d5a69b5b5ab7034e1d310046f1",
+      "type": "negocio",
+      "nombre_comercial": "Doña Nina ",
+      "descripcion": "",
+      "categoria": "",
+      "departamento": "",
+      "municipio": "",
+      "localizacion": { "lat": 0, "lng": 0, "direccion": "" },
+      "nit_registro": "0101-270966-103-7",
+      "telefono": "77777777",
+      "estado": "activo",
+      "estado_solicitud": "aprobado",
+      "usuario_propietario": {
+        "_id": "3391b2d5a69b5b5ab7034e1d31000cf7",
+        "nombres": "Nina",
+        "apellidos": "Lopez",
+        "correo": "nina12@gmail.com"
+      },
+      "alcaldia_aprobadora": {
+        "_id": "7c26ec227a8cb0d6d3cea07e80000732",
+        "nombre_institucional": "Alcaldía de Santa Ana",
+        "departamento": "",
+        "municipio": ""
+      },
+      "fecha_creacion": "2026-04-29T19:07:21.642Z"
+    },
+    {
+      "_id": "3391b2d5a69b5b5ab7034e1d31004e3b",
+      "type": "evento",
+      "titulo": "Comelona de Las Fiestas Julias",
+      "descripcion": "¡Prepara tu estómago! Ven y vive la fiesta gastronómica más grande de la Ciudad Morena. Dentro de nuestras tradicionales Fiestas Julias, te invitamos a la Comelona, un espacio dedicado a los amantes del buen comer y la tradición santaneca.",
+      "categoria": { "label": "Gastronomía", "value": "gastronomia" },
+      "departamento": { "label": "Santa Ana", "value": "SANTA_ANA" },
+      "municipio": "Santa Ana",
+      "direccion": "Campo de la Feria (Urbanización El Sinaí, contiguo a Bulevar Los 44)",
+      "localizacion": { "lat": "13.9745", "lng": "-89.5441" },
+      "fecha_inicio": "2026-07-20T00:00:00.000Z",
+      "fecha_fin": "2026-07-21T00:00:00.000Z",
+      "estado": "archivado",
+      "alcaldia": {
+        "_id": "7c26ec227a8cb0d6d3cea07e80000732",
+        "nombre_institucional": "Alcaldía de Santa Ana",
+        "departamento": "",
+        "municipio": ""
+      },
+      "fecha_creacion": "2026-04-29T19:22:07.003Z"
+    },
+    {
+      "_id": "3391b2d5a69b5b5ab7034e1d310051f2",
+      "type": "evento",
+      "titulo": "Feria de la comelona para fiestas julias",
+      "descripcion": "¡Prepara tu estómago! Ven y vive la fiesta gastronómica más grande de la Ciudad Morena. Dentro de nuestras tradicionales Fiestas Julias, te invitamos a la Comelona, un espacio dedicado a los amantes del buen comer y la tradición santaneca.",
+      "categoria": { "label": "Gastronomía", "value": "gastronomia" },
+      "departamento": { "label": "Santa Ana", "value": "SANTA_ANA" },
+      "municipio": "Santa Ana",
+      "direccion": "Campo de la Feria (Urbanización El Sinaí, contiguo a Bulevar Los 44) ",
+      "localizacion": { "lat": "13.9745", "lng": "-89.5441" },
+      "fecha_inicio": "2026-07-20T00:00:00.000Z",
+      "fecha_fin": "2026-07-20T00:00:00.000Z",
+      "estado": "activo",
+      "alcaldia": {
+        "_id": "7c26ec227a8cb0d6d3cea07e80000732",
+        "nombre_institucional": "Alcaldía de Santa Ana",
+        "departamento": "",
+        "municipio": ""
+      },
+      "fecha_creacion": "2026-04-29T19:54:26.752Z",
+      "imagen_portada": "Gemini_Generated_Image_vcaxzdvcaxzdvcax.png"
+    },
+    {
+      "_id": "3391b2d5a69b5b5ab7034e1d31005e1a",
+      "type": "sitio",
+      "nombre": "Teatro de Santa Ana",
+      "descripcion": "El Teatro Nacional de Santa Ana es el principal centro para la representación de las artes escénicas de la ciudad salvadoreña de Santa Ana. Su construcción se inició en 1902, terminándose en 1910.",
+      "categoria": { "label": "Cultura", "value": "cultura" },
+      "departamento": { "label": "Santa Ana", "value": "SANTA_ANA" },
+      "municipio": "SANTA_ANA",
+      "localizacion": {
+        "lat": "13.9952",
+        "lng": "-89.5441",
+        "direccion": "Avenida Independencia Norte &, 2a Calle Pte, Santa Ana"
+      },
+      "horario": {},
+      "estado": "activo",
+      "alcaldia": {
+        "_id": "7c26ec227a8cb0d6d3cea07e80000732",
+        "nombre_institucional": "Alcaldía de Santa Ana",
+        "departamento": "",
+        "municipio": ""
+      },
+      "fecha_creacion": "2026-04-29T20:01:25.139Z",
+      "imagen_portada": "ES_Santa_Ana_06_2011_2535.jpg"
+    },
+    {
+      "_id": "79bf870b2c756deeff84ab9356000b27",
+      "type": "configuracion",
+      "descripcion": "Catálogo de departamentos",
+      "items": [
+        { "clave": "SAN_SALVADOR", "nombre": "San Salvador", "activo": true },
+        { "clave": "LA_LIBERTAD", "nombre": "La Libertad", "activo": true },
+        { "clave": "SANTA_ANA", "nombre": "Santa Ana", "activo": true }
+      ],
+      "activo": true,
+      "fecha_actualizacion": "2026-01-01T00:00:00Z"
+    },
+    {
+      "_id": "79bf870b2c756deeff84ab9356001990",
+      "type": "configuracion",
+      "descripcion": "Catálogo de categorías",
+      "items": [
+        { "clave": "cultura", "nombre": "Cultura", "activo": true },
+        { "clave": "gastronomia", "nombre": "Gastronomía", "activo": true },
+        { "clave": "naturaleza", "nombre": "Naturaleza", "activo": true }
+      ],
+      "activo": true,
+      "fecha_actualizacion": "2026-01-01T00:00:00Z"
+    },
+    {
+      "_id": "79bf870b2c756deeff84ab9356002578",
+      "type": "evento",
+      "titulo": "Festival de las Flores",
+      "descripcion": "Festival anual con exposiciones y música.",
+      "categoria": "cultura",
+      "departamento": "Santa Ana",
+      "municipio": "Santa Ana",
+      "direccion": "Parque Central, Santa Ana",
+      "localizacion": { "lat": 13.9944, "lng": -89.5597 },
+      "fecha_inicio": "2026-05-10T08:00:00Z",
+      "fecha_fin": "2026-05-12T20:00:00Z",
+      "imagen_portada": "evt_portada.jpg",
+      "estado": "activo",
+      "destacado": true,
+      "alcaldia": {
+        "_id": "e5c1d340a92f7b88",
+        "nombre_institucional": "Alcaldía de Santa Ana",
+        "departamento": "Santa Ana",
+        "municipio": "Santa Ana"
+      },
+      "fecha_creacion": "2026-04-01T10:00:00Z"
+    },
+    {
+      "_id": "79bf870b2c756deeff84ab93560028df",
+      "type": "evento",
+      "titulo": "Surf City Music Fest",
+      "descripcion": "Conciertos en la playa.",
+      "categoria": "cultura",
+      "departamento": "La Libertad",
+      "municipio": "La Libertad",
+      "direccion": "Playa El Tunco",
+      "localizacion": { "lat": 13.5011, "lng": -89.4006 },
+      "fecha_inicio": "2026-06-20T10:00:00Z",
+      "fecha_fin": "2026-06-22T22:00:00Z",
+      "imagen_portada": "evt_portada.jpg",
+      "estado": "activo",
+      "destacado": true,
+      "alcaldia": {
+        "_id": "alc123",
+        "nombre_institucional": "Alcaldía de La Libertad",
+        "departamento": "La Libertad",
+        "municipio": "La Libertad"
+      },
+      "fecha_creacion": "2026-04-10T12:00:00Z"
+    },
+    {
+      "_id": "79bf870b2c756deeff84ab93560030cc",
+      "type": "sitio",
+      "nombre": "Lago de Coatepeque",
+      "descripcion": "Lago de origen volcánico.",
+      "categoria": "naturaleza",
+      "departamento": "Santa Ana",
+      "municipio": "El Congo",
+      "localizacion": {
+        "lat": 13.8667,
+        "lng": -89.55,
+        "direccion": "Carretera a Coatepeque"
+      },
+      "imagen_portada": "sit_portada.jpg",
+      "estado": "activo",
+      "destacado": true,
+      "alcaldia": {
+        "_id": "alc456",
+        "nombre_institucional": "Alcaldía de El Congo",
+        "departamento": "Santa Ana",
+        "municipio": "El Congo"
+      },
+      "fecha_creacion": "2026-01-15T08:00:00Z"
+    },
+    {
+      "_id": "79bf870b2c756deeff84ab9356003ca8",
+      "type": "sitio",
+      "nombre": "Ruta de las Flores",
+      "descripcion": "Pueblos pintorescos.",
+      "categoria": "cultura",
+      "departamento": "Sonsonate",
+      "municipio": "Juayúa",
+      "localizacion": {
+        "lat": 13.8333,
+        "lng": -89.7833,
+        "direccion": "Juayúa"
+      },
+      "imagen_portada": "sit_portada.jpg",
+      "estado": "activo",
+      "destacado": true,
+      "alcaldia": {
+        "_id": "alc789",
+        "nombre_institucional": "Alcaldía de Juayúa",
+        "departamento": "Sonsonate",
+        "municipio": "Juayúa"
+      },
+      "fecha_creacion": "2026-02-20T09:00:00Z"
+    },
+    {
+      "_id": "79bf870b2c756deeff84ab9356004a19",
+      "type": "negocio",
+      "nombre_comercial": "Pupusería La Abuela",
+      "descripcion": "Pupusas artesanales.",
+      "categoria": "gastronomia",
+      "departamento": "San Salvador",
+      "municipio": "San Salvador",
+      "localizacion": {
+        "lat": 13.6929,
+        "lng": -89.2182,
+        "direccion": "Col. Escalón, Calle Lamatepec #45"
+      },
+      "nit_registro": "0614-010180-101-0",
+      "telefono": "2234-5678",
+      "estado": "activo",
+      "estado_solicitud": "aprobado",
+      "usuario_propietario": {
+        "_id": "d4e9b201f78c3a56",
+        "nombres": "Carlos",
+        "apellidos": "Hernández",
+        "correo": "carlos@pupuseria.com"
+      },
+      "imagen_portada": "neg_portada.jpg",
+      "fecha_creacion": "2026-01-20T10:00:00Z"
+    },
+    {
+      "_id": "79bf870b2c756deeff84ab9356004def",
+      "type": "usuario",
+      "fecha_registro": "2026-04-28T23:04:10.230Z",
+      "nombres": "Jose",
+      "apellidos": "Luna",
+      "rol": { "label": "Usuario Final", "value": "usuario_final" },
+      "activo": true,
+      "login": {
+        "correo": "jdlf3412@gmail.com",
+        "contrasena_hash": "$2b$10$kIlF380/9g/6IrRIdYYfUuXFv1N2HIsXbUkLpkjd1oTl84f6Bn6EC",
+        "ultimo_acceso": "2026-04-29T20:23:59.553Z",
+        "intentos_fallidos": 0
+      },
+      "detalles": {
+        "detalle_usuario": {
+          "foto_perfil": "",
+          "departamento_interes": "",
+          "categorias_favoritas": [],
+          "eventos_guardados": [
+            {
+              "_id": "79bf870b2c756deeff84ab9356002578",
+              "titulo": "Festival de las Flores",
+              "departamento": "Santa Ana",
+              "municipio": "Santa Ana"
+            }
+          ],
+          "sitios_guardados": [],
+          "negocios_guardados": [],
+          "historial_viajes": [],
+          "reseñas": []
+        }
+      }
+    },
+    {
+      "_id": "7c26ec227a8cb0d6d3cea07e80000732",
+      "type": "usuario",
+      "fecha_registro": "2026-04-29T07:15:29.860Z",
+      "nombres": "Jose",
+      "apellidos": "Figueroa",
+      "rol": "alcaldia",
+      "activo": true,
+      "login": {
+        "correo": "santaana12@gmail.com",
+        "contrasena_hash": "$2b$10$/JYya.fu2CO8XsoqUhf4Yu.7vinb7zLXHVZj7GOHENbTq0pMEQLga",
+        "ultimo_acceso": "2026-04-29T19:07:04.255Z",
+        "intentos_fallidos": 0
+      },
+      "detalles": {
+        "detalle_alcaldia": {
+          "nombre_institucional": "Alcaldía de Santa Ana",
+          "telefono": "7777-7777",
+          "departamento": "",
+          "municipio": "",
+          "foto_perfil": ""
+        }
+      }
+    }
+  ]
+}
