@@ -11,7 +11,6 @@ const routes = [
       { path: 'evento/:id', name: 'detalle-evento', component: () => import('pages/DetalleEvento.vue') },
       { path: 'sitio/:id', name: 'detalle-sitio', component: () => import('pages/DetalleSitio.vue') },
       { path: 'negocio/:id', name: 'detalle-negocio', component: () => import('pages/DetalleNegocio.vue') },
-      { path: 'estadisticas', component: () => import('pages/EstadisticasPage.vue') },
       { path: 'institucional', component: () => import('pages/InstitucionalPage.vue') },
       // usuario
       {
@@ -38,7 +37,12 @@ const routes = [
           { path: 'sitios/crear', name: 'crear-sitio', component: () => import('pages/alcaldia/FormularioSitioPage.vue') },
           { path: 'sitios/editar/:id', name: 'editar-sitio', component: () => import('pages/alcaldia/FormularioSitioPage.vue') },
           { path: 'solicitudes', name: 'solicitudes-negocios', component: () => import('pages/alcaldia/SolicitudesNegociosPage.vue') },
-          { path: 'negocios', name: 'admin-negocios', component: () => import('pages/alcaldia/AdministracionNegociosPage.vue') }
+          { path: 'negocios', name: 'admin-negocios', component: () => import('pages/alcaldia/AdministracionNegociosPage.vue') },
+          {
+  path: 'estadisticas',
+  name: 'estadisticas-alcaldia',
+  component: () => import('pages/alcaldia/EstadisticasPage.vue')
+}
         ]
       },
       // negocio
