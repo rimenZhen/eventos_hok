@@ -404,6 +404,14 @@ const getImagenCatalogo = (nombre) => {
   return couch.getImageUrl(imgDocId.value, nombre)
 }
 
+function getMeta(tipo) {
+  return PRODUCT_TYPE_META[tipo] || {
+    icon: 'category',
+    color: 'grey',
+    label: tipo || 'Sin tipo'
+  }
+}
+
 const horarioFiltrado = computed(() => {
   if (!negocio.value?.horario) return []
   const diasSemana = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo']
@@ -413,6 +421,22 @@ const horarioFiltrado = computed(() => {
       nombre: nombre.charAt(0).toUpperCase() + nombre.slice(1),
       datos
     }))
+})
+
+const categoriaKey = computed(() => {
+  if (!negocio.value) return null
+  const c = negocio.value.categoria || negocio.value.categoría || null
+  if (!c) return null
+  if (typeof c === 'string') return c
+  return c.value || c.clave || c.label || null
+})
+
+const categoriaData = computed(() => {
+  const key = categoriaKey.value
+  if (!key) return { nombre: 'Sin categoría', color: 'grey' }
+  const found = configStore.categoriasNegocios?.find(cat => cat.clave === key || cat.value === key || cat.label === key)
+  if (found) return { nombre: found.nombre || found.label || key, color: found.color || 'grey' }
+  return { nombre: key, color: 'grey' }
 })
 
 const comoLlegar = () => {
