@@ -5,7 +5,7 @@
     </div>
     <div v-else-if="negocioData" class="q-ma-md">
       <div class="text-h5 q-mb-lg">Mi Negocio</div>
-      <PerfilNegocio 
+      <PerfilNegocio
         v-if="negocioData"
         :negocio="negocioData"
         editLabel="Editar Información"
@@ -14,7 +14,7 @@
         @edit="handleEditClick"
         @view-map="handleViewMap"
       />
-      
+
       <q-card class="q-mt-lg">
         <q-card-section>
           <div class="text-h6 q-mb-md">Información Adicional</div>
@@ -32,15 +32,11 @@
               <p class="text-body2">{{ distrito || '-' }}</p>
             </div>
             <div class="col-12 col-sm-6">
-              <p class="text-weight-bold text-grey-8">Municipio:</p>
-              <p class="text-body2">{{ municipio || '-' }}</p>
-            </div>
-            <div class="col-12 col-sm-6">
               <p class="text-weight-bold text-grey-8">Horario:</p>
               <p class="text-body2" v-if="negocioData?.horario">
-                <q-btn 
-                  label="Ver horario" 
-                  flat 
+                <q-btn
+                  label="Ver horario"
+                  flat
                   dense
                   color="primary"
                   @click="showHorario = !showHorario"
@@ -49,7 +45,7 @@
               <p class="text-body2" v-else>No especificado</p>
             </div>
           </div>
-          
+
           <div class="q-mt-md" v-if="showHorario && negocioData?.horario">
             <HorarioSemanal :model-value="negocioData.horario" readonly />
           </div>
@@ -59,7 +55,7 @@
       <q-card class="q-mt-lg" v-if="estadoSolicitud !== 'aprobado'">
         <q-card-section>
           <div class="text-h6 q-mb-md">Estado de Aprobación</div>
-          
+
           <q-banner v-if="successMessage" class="bg-positive text-white q-mb-md rounded-borders">
             {{ successMessage }}
           </q-banner>
@@ -68,7 +64,7 @@
             <div class="col">
               <p class="text-body2">
                 <span class="text-weight-bold">Estado:</span>
-                <q-badge 
+                <q-badge
                   :label="estadoSolicitud === 'aprobado' ? 'Aprobado' : estadoSolicitud === 'pendiente' ? 'Pendiente' : estadoSolicitud === 'observacion' ? 'En observación' : 'Sin solicitud'"
                   :color="
                     estadoSolicitud === 'aprobado' ? 'positive' :
@@ -80,7 +76,7 @@
               </p>
             </div>
             <div class="col-auto" v-if="estadoSolicitud === 'sin_solicitud' || estadoSolicitud === 'rechazado'">
-              <q-btn 
+              <q-btn
                 :label="bottonLabel"
                 color="primary"
                 @click="handleSendApproval"
@@ -88,7 +84,7 @@
                 :loading="sending"
               />
               <p v-if="!canSendApproval" class="text-caption text-orange q-mt-sm">
-                ⚠ Completa el campo "Municipio" en tu perfil antes de enviar la solicitud
+                ⚠ Completa el campo "Distrito" en tu perfil antes de enviar la solicitud
               </p>
             </div>
           </div>
@@ -122,31 +118,22 @@ const showHorario = ref(false)
 const sending = ref(false)
 const successMessage = ref('')
 
-const getDisplayValue = (value) => {
-  if (!value) return ''
-  if (typeof value === 'string') return value
-  if (typeof value === 'object' && value.label) return value.label
-  if (typeof value === 'object' && value.nombre) return value.nombre
-  return ''
+// Helpers para obtener clave real de valores que pueden ser objetos (QSelect)
+const getValue = (val) => {
+  if (!val) return null
+  if (typeof val === 'object') return val.value || val.clave || null
+  return val
 }
 
+// Obtener nombres a partir de las claves
 const departamento = computed(() => {
-  const deptUser = usuarioDoc.value?.detalles?.detalle_negocio?.departamento
-  const deptNegocio = negocio.value?.departamento
-  return configStore.getDepartamentoNombre(getDisplayValue(deptNegocio) || getDisplayValue(deptUser))
+  const clave = getValue(negocio.value?.departamento) || getValue(usuarioDoc.value?.detalles?.detalle_negocio?.departamento)
+  return configStore.getDepartamentoNombre(clave)
 })
 
 const distrito = computed(() => {
-  const distritoUser = usuarioDoc.value?.detalles?.detalle_negocio?.distrito
-  const distritoNegocio = negocio.value?.distrito
-  return configStore.getDistritoNombre(getDisplayValue(distritoNegocio) || getDisplayValue(distritoUser))
-})
-
-const municipio = computed(() => {
-  const distritoValue = usuarioDoc.value?.detalles?.detalle_negocio?.distrito || negocio.value?.distrito || ''
-  const municipioUser = usuarioDoc.value?.detalles?.detalle_negocio?.municipio
-  const municipioNegocio = negocio.value?.municipio
-  return configStore.getMunicipioNombre(getDisplayValue(distritoValue), getDisplayValue(municipioNegocio) || getDisplayValue(municipioUser))
+  const clave = getValue(negocio.value?.distrito) || getValue(negocio.value?.municipio) || getValue(usuarioDoc.value?.detalles?.detalle_negocio?.distrito) || getValue(usuarioDoc.value?.detalles?.detalle_negocio?.municipio)
+  return configStore.getDistritoNombre(clave)
 })
 
 const estadoSolicitud = computed(() => {
@@ -154,49 +141,31 @@ const estadoSolicitud = computed(() => {
 })
 
 const negocioData = computed(() => {
-  // Si existe el negocio aprobado, devolver ese
-  if (negocio.value) {
-    return negocio.value
-  }
-  // Si no, construir desde usuarioDoc si existe
-  if (usuarioDoc.value?.detalles?.detalle_negocio) {
-    return usuarioDoc.value.detalles.detalle_negocio
-  }
+  if (negocio.value) return negocio.value
+  if (usuarioDoc.value?.detalles?.detalle_negocio) return usuarioDoc.value.detalles.detalle_negocio
   return null
 })
 
 const canSendApproval = computed(() => {
-  return municipio.value && municipio.value.trim() !== ''
+  return distrito.value && distrito.value.trim() !== ''
 })
 
 const bottonLabel = computed(() => {
-  const fueRechazado = usuarioDoc.value?.detalles?.detalle_negocio?.fue_rechazado || 
-                       negocio.value?.fue_rechazado || 
-                       false
+  const fueRechazado = usuarioDoc.value?.detalles?.detalle_negocio?.fue_rechazado ||
+                       negocio.value?.fue_rechazado || false
   return fueRechazado ? 'Apelar solicitud' : 'Enviar solicitud a la alcaldía'
 })
 
-const handleEditClick = () => {
-  router.push('/negocio/editar')
-}
-
-const handleViewMap = () => {
-  console.log('Ver en mapa:', negocio.value)
-}
+const handleEditClick = () => router.push('/negocio/editar')
+const handleViewMap = () => {}
 
 const handleSendApproval = async () => {
-  if (!canSendApproval.value) {
-    return
-  }
-  
+  if (!canSendApproval.value) return
   sending.value = true
   try {
     await usuariosAPI.submitNegocioApprovalRequest(auth.user._id)
     successMessage.value = 'Solicitud de aprobación enviada a la alcaldía'
-    setTimeout(() => {
-      successMessage.value = ''
-    }, 3000)
-    // Recargar datos para ver el estado actualizado
+    setTimeout(() => { successMessage.value = '' }, 3000)
     await cargarDatos()
   } catch (e) {
     console.error('Error al enviar solicitud:', e)
@@ -211,7 +180,6 @@ const cargarDatos = async () => {
     try {
       negocio.value = await negocioAPI.getMiNegocio(auth.user._id)
     } catch {
-      // El negocio no existe aún (solicitud aún pendiente)
       negocio.value = null
     }
   } catch (e) {
@@ -221,9 +189,7 @@ const cargarDatos = async () => {
 
 onMounted(async () => {
   try {
-    if (configStore.departamentos.length === 0) {
-      await configStore.fetchCatalogos()
-    }
+    if (configStore.departamentos.length === 0) await configStore.fetchCatalogos()
     await cargarDatos()
   } finally {
     loading.value = false

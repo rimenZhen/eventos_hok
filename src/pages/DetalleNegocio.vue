@@ -199,9 +199,9 @@
                       </q-item-section>
                       <q-item-section>
                         <q-item-label caption>Ubicación</q-item-label>
-                        <q-item-label>
-                          {{ extraerLabel(negocio.municipio) }}, {{ extraerLabel(negocio.departamento) }}
-                        </q-item-label>
+                                  <q-item-label>
+                                  {{ distritoMostrar }}<span v-if="distritoMostrar && departamentoMostrar">, </span>{{ departamentoMostrar }}
+                                </q-item-label>
                       </q-item-section>
                     </q-item>
                   </q-list>
@@ -372,12 +372,25 @@ const activeProductSlides = reactive({})
 const slideActualDetalle = ref(0)
 const productoSeleccionado = ref(null)
 
-// Función para extraer texto de objetos de Quasar (QSelect)
-const extraerLabel = (valor) => {
-  if (!valor) return ''
-  if (typeof valor === 'string') return valor
-  return valor.label || valor.nombre || ''
+
+const getValue = (val) => {
+  if (!val) return null
+  if (typeof val === 'object') return val.value || val.clave || null
+  return val
 }
+
+// Datos para ubicación
+const distritoMostrar = computed(() => {
+  const clave = getValue(negocio.value?.distrito) || getValue(negocio.value?.municipio) // municipio a veces guarda el nombre
+  if (!clave) return ''
+  return configStore.getDistritoNombre(clave) || clave
+})
+
+const departamentoMostrar = computed(() => {
+  const clave = getValue(negocio.value?.departamento)
+  if (!clave) return ''
+  return configStore.getDepartamentoNombre(clave) || clave
+})
 
 const imgDocId = computed(() => 'neg_' + negocio.value?._id)
 
@@ -480,7 +493,7 @@ async function agregarResena({ calificacion, comentario }) {
   try {
     // Recargar el documento más reciente para evitar conflictos de versión
     const docFresco = await couch.get(import.meta.env.VITE_DB_DATA, negocio.value._id)
-    
+
     const nuevaResena = {
       usuario_nombres: auth.user.nombres,
       usuario_apellidos: auth.user.apellidos,
@@ -488,7 +501,7 @@ async function agregarResena({ calificacion, comentario }) {
       comentario,
       fecha: new Date().toISOString()
     }
-    
+
     docFresco.reseñas = docFresco.reseñas || []
     docFresco.reseñas.push(nuevaResena)
 
@@ -496,7 +509,7 @@ async function agregarResena({ calificacion, comentario }) {
     docFresco.calificacion_promedio = total / docFresco.reseñas.length
 
     await couch.put(import.meta.env.VITE_DB_DATA, docFresco)
-    
+
     // Recargar para mostrar la nueva reseña
     await cargarNegocio()
   } catch (err) {

@@ -33,7 +33,8 @@ export const useConfiguracionStore = defineStore('configuracion', {
 
             if (desc.includes('departamento')) {
               this.departamentos = itemsActivos
-              this.distritos = itemsActivos.flatMap(departamento => {
+              // Extraer distritos anidados y añadirlos al array sin sobrescribir lo que ya exista
+              const departamentoDistritos = itemsActivos.flatMap(departamento => {
                 return (departamento.distritos || [])
                   .filter(distrito => distrito.activo)
                   .map(distrito => ({
@@ -42,6 +43,13 @@ export const useConfiguracionStore = defineStore('configuracion', {
                     departamento_nombre: departamento.nombre
                   }))
               })
+              // Unir sin duplicados por clave
+              for (const d of departamentoDistritos) {
+                if (!this.distritos.some(ex => ex.clave === d.clave)) {
+                  this.distritos.push(d)
+                }
+              }
+
             } else if (desc.includes('categorías de eventos') || desc.includes('categorias de eventos')) {
               this.categoriasEventos = itemsActivos
             } else if (desc.includes('categorías de sitios') || desc.includes('categorias de sitios')) {
@@ -70,14 +78,33 @@ export const useConfiguracionStore = defineStore('configuracion', {
     },
 
     getDistritosByDepartamento(departamentoClave) {
-      if (!departamentoClave) return []
-      return this.distritos
-        .filter(distrito => distrito.departamento_clave === departamentoClave)
-        .map(distrito => ({
-          label: distrito.nombre,
-          value: distrito.clave
-        }))
-    },
+  if (!departamentoClave) return []
+
+  // 1. Distritos que ya tienen departamento_clave (anidados en departamentos)
+  const directos = this.distritos.filter(d => d.departamento_clave === departamentoClave)
+
+  // 2. Mapa rápido: clave de alcaldía -> departamento
+  const alcaldiaDeptoMap = new Map()
+  this.alcaldias.forEach(a => {
+    if (a.departamento) alcaldiaDeptoMap.set(a.clave, a.departamento)
+  })
+
+  // 3. Distritos que vienen del catálogo separado (tienen propiedad "alcaldia")
+  const viaAlcaldia = this.distritos.filter(d => {
+    if (d.departamento_clave) return false // ya los tenemos
+    return d.alcaldia && alcaldiaDeptoMap.get(d.alcaldia) === departamentoClave
+  })
+
+  // 4. Unir, eliminar duplicados por clave y mapear a opciones
+  const todos = [...directos, ...viaAlcaldia]
+  const unique = new Map()
+  todos.forEach(d => {
+    if (!unique.has(d.clave)) {
+      unique.set(d.clave, { label: d.nombre, value: d.clave })
+    }
+  })
+  return Array.from(unique.values())
+},
 
     getMunicipiosByDistrito(distritoClave) {
       if (!distritoClave) return []
