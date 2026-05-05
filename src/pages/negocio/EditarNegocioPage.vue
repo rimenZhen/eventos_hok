@@ -7,6 +7,7 @@
       <q-select v-model="form.categoria" :options="categoriasOptions" label="Categoría" outlined class="q-mt-sm" />
       <q-input v-model="form.telefono" label="Teléfono" outlined />
       <q-input v-model="form.nit_registro" label="NIT" outlined />
+
       <q-select
         v-model="form.departamento"
         :options="departamentosOptions"
@@ -17,28 +18,18 @@
         @update:model-value="handleDepartamentoChange"
       />
 
+      <!-- Renombrado a Municipio (en realidad selecciona el distrito) -->
       <q-select
         v-model="form.distrito"
-        :options="distritosOptions"
-        label="Distrito"
+        :options="municipioOptions"
+        label="Municipio"
         outlined
         class="q-mt-sm"
         :disable="!form.departamento"
         emit-value
         map-options
-        @update:model-value="handleDistritoChange"
       />
 
-      <q-select
-        v-model="form.municipio"
-        :options="municipiosOptions"
-        label="Municipio"
-        outlined
-        class="q-mt-sm"
-        :disable="!form.distrito"
-        emit-value
-        map-options
-      />
       <q-input v-model="form.direccion" label="Dirección" outlined />
       <q-input v-model="form.lat" label="Latitud" type="number" step="any" outlined />
       <q-input v-model="form.lng" label="Longitud" type="number" step="any" outlined />
@@ -57,8 +48,6 @@
       <q-separator class="q-my-lg" />
 
       <div class="text-subtitle1 text-weight-bold q-mb-sm">Información adicional del negocio</div>
-
-      
 
       <HorarioSemanal v-model="form.horario" />
 
@@ -112,8 +101,7 @@ const form = reactive({
   telefono: '',
   nit_registro: '',
   departamento: null,
-  distrito: null,
-  municipio: '',
+  distrito: null,      // ahora solo un campo, clave del distrito
   direccion: '',
   lat: 13.7,
   lng: -89.2,
@@ -123,40 +111,51 @@ const form = reactive({
 const categoriasOptions = computed(() => configStore.categoriasNegocios?.map(c => ({ label: c.nombre, value: c.clave })) || [])
 const departamentosOptions = computed(() => configStore.getDepartamentosOptions())
 
-const getValue = (value) => {
-  if (!value) return null
-  if (typeof value === 'object') return value.value || value.clave || null
-  return value
+const getValue = (val) => {
+  if (!val) return null
+  if (typeof val === 'object') return val.value || val.clave || null
+  return val
 }
 
-const distritosOptions = computed(() => {
-  return configStore.getDistritosByDepartamento(getValue(form.departamento))
-})
-
-const municipiosOptions = computed(() => {
-  return configStore.getMunicipiosByDistrito(getValue(form.distrito))
+// Opciones para el select "Municipio" (distritos filtrados por departamento)
+const municipioOptions = computed(() => {
+  const deptoClave = getValue(form.departamento)
+  if (!deptoClave) return []
+  return configStore.getDistritosByDepartamento(deptoClave)
+  // getDistritosByDepartamento ya devuelve [{label, value}]
 })
 
 function handleDepartamentoChange(value) {
   form.departamento = value
   form.distrito = null
-  form.municipio = null
 }
 
-function handleDistritoChange(value) {
-  form.distrito = value
-  form.municipio = null
+/**
+ * Busca la clave del distrito a partir de su nombre, dentro de un departamento.
+ * (Para negocios antiguos que guardaban el nombre en lugar de la clave)
+ */
+function findDistritoClaveByNombre(nombre, deptoClave) {
+  if (!nombre || !deptoClave) return null
+  const distritosDepto = configStore.getDistritosByDepartamento(deptoClave)
+  const found = distritosDepto.find(d => d.label.toLowerCase() === nombre.toLowerCase())
+  return found ? found.value : null
 }
 
+/**
+ * Obtiene la clave del departamento a partir de un valor (objeto o string)
+ */
+function getDepartamentoClave(val) {
+  if (!val) return null
+  if (typeof val === 'object') return val.value || val.clave || null
+  return val
+}
 
 function usarUbicacionActual() {
   gpsError.value = ''
-
   if (!navigator.geolocation) {
     gpsError.value = 'Tu navegador no soporta geolocalización.'
     return
   }
-
   gpsLoading.value = true
   navigator.geolocation.getCurrentPosition(
     (position) => {
@@ -183,39 +182,60 @@ function usarUbicacionActual() {
 onMounted(async () => {
   if (configStore.departamentos.length === 0) await configStore.fetchCatalogos()
   try {
-    // Intentar obtener el negocio aprobado
     const negocio = await negocioAPI.getMiNegocio(auth.user._id)
     negocioId.value = negocio._id
     docRev.value = negocio._rev
+
+    // Extraer departamento (puede ser string u objeto)
+    const deptoClave = getDepartamentoClave(negocio.departamento)
+    // Si el municipio almacenado es un nombre (ej. "El Congo"), convertirlo a clave
+    let distritoClave = getValue(negocio.distrito) || getValue(negocio.municipio)
+    if (distritoClave && deptoClave) {
+      const distritosDepto = configStore.getDistritosByDepartamento(deptoClave)
+      const existe = distritosDepto.some(d => d.value === distritoClave)
+      if (!existe) {
+        // Podría ser un nombre, buscar por nombre
+        const clave = findDistritoClaveByNombre(distritoClave, deptoClave)
+        distritoClave = clave || null
+      }
+    }
+
     Object.assign(form, {
       nombre_comercial: negocio.nombre_comercial,
       descripcion: negocio.descripcion || '',
-      categoria: negocio.categoria,
+      categoria: getValue(negocio.categoria),
       telefono: negocio.telefono || '',
       nit_registro: negocio.nit_registro || '',
-      departamento: getValue(negocio.departamento),
-      distrito: getValue(negocio.distrito) || getValue(negocio.alcaldia_destino?.distrito),
-      municipio: getValue(negocio.municipio) || '',
+      departamento: deptoClave,
+      distrito: distritoClave,
       direccion: negocio.localizacion?.direccion || '',
       lat: negocio.localizacion?.lat || 13.7,
       lng: negocio.localizacion?.lng || -89.2,
       horario: negocio.horario || crearHorarioBase()
     })
   } catch {
-    // Si no existe el negocio aprobado, intenta obtener datos del usuario
-    try {
+    // Fallback: cargar desde el usuario
+        try {
       const usuarioDoc = await couch.get(DB, auth.user._id)
       const detalle = usuarioDoc.detalles?.detalle_negocio
       if (detalle) {
+        const deptoClave = getDepartamentoClave(detalle.departamento)
+        // Leer distrito o municipio como respaldo
+        let distritoClave = getValue(detalle.distrito) || getValue(detalle.municipio)
+        if (distritoClave && deptoClave) {
+          const distritosDepto = configStore.getDistritosByDepartamento(deptoClave)
+          if (!distritosDepto.some(d => d.value === distritoClave)) {
+            distritoClave = findDistritoClaveByNombre(distritoClave, deptoClave) || null
+          }
+        }
         Object.assign(form, {
           nombre_comercial: detalle.nombre_comercial || '',
           descripcion: detalle.descripcion || '',
-          categoria: detalle.categoria || null,
+          categoria: getValue(detalle.categoria),
           telefono: detalle.contacto || '',
           nit_registro: detalle.nit_registro || '',
-          departamento: getValue(detalle.departamento),
-          distrito: getValue(detalle.distrito),
-          municipio: getValue(detalle.municipio) || '',
+          departamento: deptoClave,
+          distrito: distritoClave,         // ←
           direccion: detalle.localizacion?.direccion || '',
           lat: detalle.localizacion?.lat || 13.7,
           lng: detalle.localizacion?.lng || -89.2,
@@ -231,7 +251,6 @@ onMounted(async () => {
 async function guardar() {
   saving.value = true
   try {
-    // 1. Preparamos los datos a actualizar
     const updates = {
       nombre_comercial: form.nombre_comercial,
       descripcion: form.descripcion,
@@ -240,7 +259,7 @@ async function guardar() {
       nit_registro: form.nit_registro,
       departamento: form.departamento,
       distrito: form.distrito,
-      municipio: form.municipio,
+      municipio: form.distrito,
       horario: form.horario,
       localizacion: {
         lat: form.lat,
@@ -249,53 +268,40 @@ async function guardar() {
       }
     }
 
-    // 2. Si hay una nueva imagen seleccionada, asignamos el nombre al campo imagen_portada
     if (portadaFile.value) {
       updates.imagen_portada = portadaFile.value.name
     }
 
-    // 3. Guardar los cambios
     if (negocioId.value) {
-      // Caso: Negocio aprobado (existe documento de negocio)
       await negocioAPI.updateNegocio(negocioId.value, docRev.value, updates)
     } else {
-      // Caso: Negocio nuevo (solo existen datos en usuario)
       const usuarioDoc = await couch.get(DB, auth.user._id)
       usuarioDoc.detalles.detalle_negocio = {
         ...usuarioDoc.detalles.detalle_negocio,
         ...updates,
-        contacto: form.telefono // Mapear teléfono al campo contacto del usuario
+        contacto: form.telefono
       }
       await couch.put(DB, usuarioDoc)
     }
 
-    // 4. Si hay un archivo, lo subimos al documento de adjuntos correspondiente
     if (portadaFile.value && negocioId.value) {
       const imgDocId = 'neg_' + negocioId.value
       let imgDoc
-
       try {
-        // Intentamos obtener el documento de imagen existente
         imgDoc = await couch.get(import.meta.env.VITE_DB_IMAGES, imgDocId)
       } catch {
-        // Si no existe (es la primera vez), lo creamos
-        // Nota: Usamos .value porque negocioId es un ref
         imgDoc = await couch.createImageDoc(imgDocId, 'negocio', negocioId.value)
       }
-
-      // Subir el archivo físico a la base de datos de imágenes
       await couch.uploadImage(imgDocId, imgDoc._rev, portadaFile.value)
     }
 
-    // 5. Si el estado es 'sin_solicitud' y ahora tiene municipio, enviar solicitud automáticamente
+    // Enviar solicitud de aprobación si está pendiente y hay municipio
     if (form.municipio) {
       const usuarioDoc = await couch.get(DB, auth.user._id)
       const estado = usuarioDoc.detalles?.detalle_negocio?.estado_solicitud || 'sin_solicitud'
-      
       if (estado === 'sin_solicitud' || estado === 'rechazado') {
         try {
           await usuariosAPI.submitNegocioApprovalRequest(auth.user._id)
-          console.log('Solicitud de aprobación enviada automáticamente')
         } catch (e) {
           console.error('Error al enviar solicitud automática:', e)
         }

@@ -181,9 +181,10 @@
                 outlined
                 emit-value
                 map-options
+                readonly
+                hint="Se asigna automáticamente según la alcaldía"
                 :error="!!errors.departamento"
                 :error-message="errors.departamento"
-                @update:model-value="form.municipio = ''"
               />
             </div>
 
@@ -195,7 +196,8 @@
                 outlined
                 emit-value
                 map-options
-                :disable="!form.departamento"
+                readonly
+                hint="Se asigna automáticamente según la alcaldía"
                 :error="!!errors.municipio"
                 :error-message="errors.municipio"
               />
@@ -308,18 +310,38 @@ const portadaInput = ref(null)
 const previewPortada = ref(null)
 const errors = reactive({})
 
+const detalleAlcaldia = computed(() => auth.user?.detalles?.detalle_alcaldia || {})
+
 const categoriasOptions = computed(() =>
-  (configStore.categorias || []).map((c) => ({ label: c.nombre, value: c.clave })),
+  (configStore.categoriasSitios || []).map((c) => ({ label: c.nombre, value: c.clave })),
 )
 
-const departamentosOptions = computed(() =>
-  (configStore.departamentos || []).map((d) => ({ label: d.nombre, value: d.clave })),
-)
+const departamentosOptions = computed(() => {
+  const departamentoClave = form.departamento || detalleAlcaldia.value.departamento
+  if (!departamentoClave) return []
+
+  const departamento = configStore.departamentos?.find((d) => d.clave === departamentoClave)
+
+  return [
+    {
+      label: departamento?.nombre || departamentoClave,
+      value: departamentoClave,
+    },
+  ]
+})
 
 const municipiosOptions = computed(() => {
-  if (!form.departamento) return []
-  const depto = configStore.departamentos?.find((d) => d.clave === form.departamento)
-  return (depto?.municipios || []).map((m) => ({ label: m.nombre, value: m.nombre }))
+  const municipioClave = form.municipio || detalleAlcaldia.value.municipio
+  if (!municipioClave) return []
+
+  const alcaldia = configStore.alcaldias?.find((a) => a.clave === municipioClave)
+
+  return [
+    {
+      label: alcaldia?.nombre || municipioClave,
+      value: municipioClave,
+    },
+  ]
 })
 
 const categoriaLabel = computed(() => {
@@ -332,7 +354,9 @@ const resumenUbicacion = computed(() => {
     const depNombre =
       departamentosOptions.value.find((d) => d.value === form.departamento)?.label ||
       form.departamento
-    return `${form.municipio || ''}, ${depNombre}`.trim()
+    const munNombre =
+      municipiosOptions.value.find((m) => m.value === form.municipio)?.label || form.municipio
+    return `${munNombre || ''}, ${depNombre}`.trim()
   }
   if (form.lat !== null && form.lng !== null) return `${form.lat}, ${form.lng}`
   return '---'
@@ -351,16 +375,20 @@ async function prepararFormulario() {
   resetForm()
   currentStep.value = 1
 
-  if ((configStore.categorias || []).length === 0) await configStore.fetchCatalogos()
+  if ((configStore.categoriasSitios || []).length === 0) await configStore.fetchCatalogos()
 
-  if (!isEdit.value) {
-    const detalle = auth.user?.detalles?.detalle_alcaldia
-    if (detalle?.departamento) form.departamento = detalle.departamento
-    if (detalle?.municipio) form.municipio = detalle.municipio
-  }
+  aplicarDatosAlcaldia()
 
   if (props.sitio) cargarSitio(props.sitio)
+  aplicarDatosAlcaldia()
   inicializarHorario()
+}
+
+function aplicarDatosAlcaldia() {
+  const detalle = detalleAlcaldia.value
+
+  form.departamento = detalle.departamento || ''
+  form.municipio = detalle.municipio || ''
 }
 
 function getEmptyForm() {

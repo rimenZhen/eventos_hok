@@ -86,6 +86,8 @@ export const couch = {
     const url = `${couchUrl}/${dbImages}/${encodeURIComponent(imgDocId)}/${encodeURIComponent(file.name)}?rev=${rev}`
     const res = await fetch(url, {
       method: 'PUT',
+      mode: 'cors',
+      credentials: 'include',
       headers: {
         Authorization: authHeader,
         'Content-Type': file.type || 'application/octet-stream'
@@ -104,6 +106,8 @@ export const couch = {
     const url = `${couchUrl}/${dbImages}/${encodeURIComponent(imgDocId)}/${encodeURIComponent(attachmentName)}?rev=${rev}`
     const res = await fetch(url, {
       method: 'DELETE',
+      mode: 'cors',
+      credentials: 'include',
       headers: {
         Authorization: authHeader
       }

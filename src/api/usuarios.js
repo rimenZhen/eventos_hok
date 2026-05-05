@@ -1,4 +1,5 @@
 import { couch } from './index'
+import bcrypt from 'bcryptjs'
 const DB = import.meta.env.VITE_DB_DATA
 
 export const usuariosAPI = {
@@ -111,6 +112,21 @@ export const usuariosAPI = {
       distrito: alcaldiaDestino.detalles?.detalle_alcaldia?.distrito || '',
       municipio: alcaldiaDestino.detalles?.detalle_alcaldia?.municipio || ''
     }
+    return couch.put(DB, doc)
+  },
+
+  // Actualizar contraseña
+  async updatePassword(userId, { oldPassword, newPassword }) {
+    const doc = await couch.get(DB, userId)
+    // Verificar contraseña anterior
+    const valid = await bcrypt.compare(oldPassword, doc.login.contrasena_hash)
+    if (!valid) {
+      throw new Error('Contraseña anterior incorrecta')
+    }
+    // Hashear nueva contraseña
+    const salt = await bcrypt.genSalt(10)
+    const hash = await bcrypt.hash(newPassword, salt)
+    doc.login.contrasena_hash = hash
     return couch.put(DB, doc)
   }
 }

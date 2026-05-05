@@ -1,6 +1,6 @@
 <template>
   <q-card class="business-profile q-pa-md shadow-1" :class="{ 'border-approved': isApproved }">
-    
+
     <div class="row items-center no-wrap">
 
       <!-- Avatar -->
@@ -164,12 +164,12 @@ const location = computed(() => {
   if (direccion) return direccion
 
   const distritoClave = getDisplayField(props.negocio?.distrito)
-  const municipioClave = getDisplayField(props.negocio?.municipio)
   const departamentoClave = getDisplayField(props.negocio?.departamento)
+
   const distrito = configStore.getDistritoNombre(distritoClave)
-  const municipio = configStore.getMunicipioNombre(distritoClave, municipioClave)
   const departamento = configStore.getDepartamentoNombre(departamentoClave)
-  return [municipio, distrito, departamento].filter(Boolean).join(', ')
+
+  return [distrito, departamento].filter(Boolean).join(', ')
 })
 const phone = computed(() => props.negocio?.telefono || '+503 0000-0000')
 const status = computed(() => props.negocio?.estado_solicitud)

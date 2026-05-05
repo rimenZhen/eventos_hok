@@ -7,6 +7,7 @@
 
       <q-card-section>
         <q-form @submit="onSubmit" class="q-gutter-y-md">
+          <!-- Campos comunes -->
           <q-input
             v-model="form.nombres"
             label="Nombres"
@@ -49,7 +50,7 @@
             :rules="[val => !!val || 'Selecciona un rol']"
           />
 
-          <!-- Campos adicionales según rol -->
+          <!-- Negocio -->
           <template v-if="form.rol === 'negocio'">
             <q-input
               v-model="form.detalle_negocio.nombre_comercial"
@@ -68,6 +69,32 @@
               label="Teléfono de contacto"
               outlined
             />
+            <!-- Nuevo: Departamento -->
+            <q-select
+              v-model="form.detalle_negocio.departamento"
+              :options="departamentosOptions"
+              label="Departamento"
+              outlined
+              emit-value
+              map-options
+              lazy-rules
+              :rules="[val => !!val || 'Selecciona un departamento']"
+              @update:model-value="handleDepartamentoNegocioChange"
+            />
+            <!-- Nuevo: Distrito (filtrado por departamento) -->
+            <q-select
+              v-model="form.detalle_negocio.distrito"
+              :options="negocioDistritosOptions"
+              label="Distrito"
+              outlined
+              emit-value
+              map-options
+              lazy-rules
+              :rules="[val => !!val || 'Selecciona un distrito']"
+              :disable="!form.detalle_negocio.departamento || loadingDistritos"
+              :loading="loadingDistritos"
+            />
+            <!-- Ubicación -->
             <q-input
               v-model="form.detalle_negocio.localizacion.lat"
               label="Latitud"
@@ -95,6 +122,7 @@
             </div>
           </template>
 
+          <!-- Alcaldía (sin cambios) -->
           <template v-if="form.rol === 'alcaldia'">
             <q-input
               v-model="form.detalle_alcaldia.nombre_institucional"
@@ -115,18 +143,9 @@
               outlined
               emit-value
               map-options
+              lazy-rules
+              :rules="[val => !!val || 'Selecciona un departamento']"
               @update:model-value="handleDepartamentoAlcaldiaChange"
-            />
-            <q-select
-              v-model="form.detalle_alcaldia.distrito"
-              :options="distritosOptions"
-              label="Distrito"
-              outlined
-              class="q-mt-sm"
-              emit-value
-              map-options
-              :disable="!form.detalle_alcaldia.departamento"
-              @update:model-value="handleDistritoAlcaldiaChange"
             />
             <q-select
               v-model="form.detalle_alcaldia.municipio"
@@ -136,7 +155,11 @@
               class="q-mt-sm"
               emit-value
               map-options
-              :disable="!form.detalle_alcaldia.distrito"
+              lazy-rules
+              :rules="[val => !!val || 'Selecciona un municipio']"
+              :disable="!form.detalle_alcaldia.departamento || loadingMunicipios"
+              :loading="loadingMunicipios"
+              :hint="municipiosOptions.length === 0 && form.detalle_alcaldia.departamento ? 'No hay municipios disponibles' : ''"
             />
           </template>
 
@@ -171,6 +194,9 @@ import { reactive, ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from 'src/stores/auth'
 import { useConfiguracionStore } from 'src/stores/configuracion'
+import { couch } from 'src/api/index'
+
+const DB = import.meta.env.VITE_DB_DATA
 
 const authStore = useAuthStore()
 const configStore = useConfiguracionStore()
@@ -192,95 +218,151 @@ const form = reactive({
     nombre_comercial: '',
     nit_registro: '',
     contacto: '',
-    localizacion: {
-      lat: '',
-      lng: '',
-      direccion: ''
-    }
+    departamento: null,      // nuevo
+    distrito: null,          // nuevo
+    localizacion: { lat: '', lng: '', direccion: '' }
   },
   detalle_alcaldia: {
     nombre_institucional: '',
     telefono: '',
     departamento: null,
-    distrito: null,
     municipio: null
   }
 })
 
 const gpsLoading = ref(false)
 const gpsError = ref('')
+const registeredMunicipios = ref([])
+const loadingMunicipios = ref(false)
+const loadingDistritos = ref(false)
 
+// --- Departamentos (común para ambos roles) ---
 const departamentosOptions = computed(() => configStore.getDepartamentosOptions())
-const getValue = (value) => {
-  if (!value) return null
-  if (typeof value === 'object') return value.value || value.clave || null
-  return value
+
+// --- Funciones auxiliares ---
+const getValue = (val) => {
+  if (!val) return null
+  if (typeof val === 'object') return val.value || val.clave || null
+  return val
 }
 
-const distritosOptions = computed(() => configStore.getDistritosByDepartamento(getValue(form.detalle_alcaldia.departamento)))
-const municipiosOptions = computed(() => configStore.getMunicipiosByDistrito(getValue(form.detalle_alcaldia.distrito)))
+// --- Para alcaldía: municipios (44 alcaldías) filtrados y excluyendo registrados ---
+const municipiosOptions = computed(() => {
+  const deptoClave = getValue(form.detalle_alcaldia.departamento)
+  if (!deptoClave) return []
+  return configStore.alcaldias
+    .filter(item => item.departamento === deptoClave && item.activo)
+    .filter(item => !registeredMunicipios.value.includes(item.clave))
+    .map(item => ({ label: item.nombre, value: item.clave }))
+})
+
+async function fetchRegisteredAlcaldias() {
+  loadingMunicipios.value = true
+  try {
+    const result = await couch.find(DB, { type: 'usuario', rol: 'alcaldia' })
+    registeredMunicipios.value = result.docs
+      .map(doc => doc.detalles?.detalle_alcaldia?.municipio)
+      .filter(Boolean)
+  } catch (err) {
+    console.error('Error al obtener alcaldías registradas:', err)
+  } finally {
+    loadingMunicipios.value = false
+  }
+}
 
 function handleDepartamentoAlcaldiaChange(value) {
   form.detalle_alcaldia.departamento = value
-  form.detalle_alcaldia.distrito = null
   form.detalle_alcaldia.municipio = null
 }
 
-function handleDistritoAlcaldiaChange(value) {
-  form.detalle_alcaldia.distrito = value
-  form.detalle_alcaldia.municipio = null
+// --- Para negocio: distritos por departamento (usando mapeo alcaldía) ---
+const negocioDistritosOptions = computed(() => {
+  const deptoClave = getValue(form.detalle_negocio.departamento)
+  if (!deptoClave) return []
+
+  // 1. Obtener todas las alcaldías del departamento
+  const alcaldiasDelDepto = configStore.alcaldias
+    .filter(a => a.departamento === deptoClave && a.activo)
+    .map(a => a.clave)
+
+  // 2. Filtrar distritos: los que tienen departamento_clave (nested) o alcaldia (catálogo separado)
+  const distritosFiltrados = configStore.distritos.filter(d => {
+    if (d.departamento_clave) {
+      return d.departamento_clave === deptoClave
+    }
+    if (d.alcaldia) {
+      return alcaldiasDelDepto.includes(d.alcaldia)
+    }
+    return false
+  })
+
+  // 3. Eliminar duplicados (por clave) y mapear a opciones
+  const uniqueMap = new Map()
+  distritosFiltrados.forEach(d => {
+    if (!uniqueMap.has(d.clave)) {
+      uniqueMap.set(d.clave, { label: d.nombre, value: d.clave })
+    }
+  })
+  return Array.from(uniqueMap.values())
+})
+
+function handleDepartamentoNegocioChange(value) {
+  form.detalle_negocio.departamento = value
+  form.detalle_negocio.distrito = null
 }
 
+// --- On Mount ---
 onMounted(async () => {
   if (configStore.departamentos.length === 0) {
     await configStore.fetchCatalogos()
   }
+  await fetchRegisteredAlcaldias()
 })
 
+// --- Geolocalización ---
 function usarUbicacionActual() {
   gpsError.value = ''
-
   if (!navigator.geolocation) {
     gpsError.value = 'Tu navegador no soporta geolocalización.'
     return
   }
-
   gpsLoading.value = true
   navigator.geolocation.getCurrentPosition(
-    (position) => {
-      form.detalle_negocio.localizacion.lat = position.coords.latitude
-      form.detalle_negocio.localizacion.lng = position.coords.longitude
+    (pos) => {
+      form.detalle_negocio.localizacion.lat = pos.coords.latitude
+      form.detalle_negocio.localizacion.lng = pos.coords.longitude
       gpsLoading.value = false
     },
-    (error) => {
+    (err) => {
       gpsLoading.value = false
-      if (error.code === error.PERMISSION_DENIED) {
-        gpsError.value = 'Debes permitir el acceso a tu ubicación.'
-      } else if (error.code === error.POSITION_UNAVAILABLE) {
-        gpsError.value = 'No fue posible obtener tu ubicación actual.'
-      } else if (error.code === error.TIMEOUT) {
-        gpsError.value = 'Se agotó el tiempo para obtener tu ubicación.'
-      } else {
-        gpsError.value = 'No se pudo obtener tu ubicación actual.'
+      const mensajes = {
+        1: 'Debes permitir el acceso a tu ubicación.',
+        2: 'No fue posible obtener tu ubicación actual.',
+        3: 'Se agotó el tiempo para obtener tu ubicación.'
       }
+      gpsError.value = mensajes[err.code] || 'No se pudo obtener tu ubicación actual.'
     },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
   )
 }
 
+// --- Envío del formulario ---
 async function onSubmit() {
   if (configStore.departamentos.length === 0) {
     await configStore.fetchCatalogos()
   }
 
-  // Construir objeto detalles según rol
   let detalles = {}
   if (form.rol === 'usuario_final') {
     detalles = { detalle_usuario: {} }
   } else if (form.rol === 'negocio') {
     detalles = {
       detalle_negocio: {
-        ...form.detalle_negocio,
+        nombre_comercial: form.detalle_negocio.nombre_comercial,
+        nit_registro: form.detalle_negocio.nit_registro,
+        contacto: form.detalle_negocio.contacto,
+        departamento: form.detalle_negocio.departamento,
+        distrito: form.detalle_negocio.distrito,
         localizacion: {
           lat: Number(form.detalle_negocio.localizacion.lat) || 0,
           lng: Number(form.detalle_negocio.localizacion.lng) || 0,
@@ -292,9 +374,9 @@ async function onSubmit() {
   } else if (form.rol === 'alcaldia') {
     detalles = {
       detalle_alcaldia: {
-        ...form.detalle_alcaldia,
+        nombre_institucional: form.detalle_alcaldia.nombre_institucional,
+        telefono: form.detalle_alcaldia.telefono,
         departamento: form.detalle_alcaldia.departamento,
-        distrito: form.detalle_alcaldia.distrito,
         municipio: form.detalle_alcaldia.municipio,
         foto_perfil: ''
       }
@@ -312,7 +394,7 @@ async function onSubmit() {
     })
     router.push('/')
   } catch {
-    // error manejado en store
+    // error manejado en el store
   }
 }
 </script>
