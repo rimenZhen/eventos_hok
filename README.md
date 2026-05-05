@@ -4,6 +4,8 @@ Eventos de el salvador
 
 ## Install the dependencies
 
+Version de node  22.22.0
+
 ```bash
 yarn
 # or
@@ -36,6 +38,27 @@ npm run format
 
 ```bash
 quasar build
+```
+
+
+### EJECUTAR EN COUCH DB LOS ARCHIVOS QUE SE ENCUENTRAN EN LA RAIZ
+### Cambia tu contraseña por la correcta
+### 44municipios.json
+```bash
+curl -d @44municipios.json      -H "Content-Type: application/json"      -X POST      http://admin:tucontraseña@127.0.0.1:5984/eventos_data/_bulk_docs
+```
+
+### distritos.json
+```bash
+curl -d @distritos.json      -H "Content-Type: application/json"      -X POST      http://admin:tucontraseña@127.0.0.1:5984/eventos_data/_bulk_docs
+```
+### departamentos.json
+```bash
+curl -d @departamentos.json      -H "Content-Type: application/json"      -X POST      http://admin:tucontraseña@127.0.0.1:5984/eventos_data/_bulk_docs
+```
+### categorias.json
+```bash
+curl -d @categorias.json      -H "Content-Type: application/json"      -X POST      http://admin:tucontraseña@127.0.0.1:5984/eventos_data/_bulk_docs
 ```
 
 ### Customize the configuration
