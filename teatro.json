@@ -1,0 +1,32 @@
+{
+  "docs": [
+    {
+      "_id": "3391b2d5a69b5b5ab7034e1d31005e1a",
+      "type": "sitio",
+      "nombre": "Teatro de Santa Ana",
+      "descripcion": "El Teatro Nacional de Santa Ana es el principal centro para la representación de las artes escénicas de la ciudad salvadoreña de Santa Ana. Su construcción se inició en 1902, terminándose en 1910.​",
+      "categoria": "historico",
+      "departamento": {
+        "label": "Santa Ana",
+        "value": "SANTA_ANA"
+      },
+      "municipio": "Santa Ana",
+      "localizacion": {
+        "lat": "13.994722",
+        "lng": "-89.556667",
+        "direccion": "Avenida Independencia Norte &, 2a Calle Pte, Santa Ana"
+      },
+      "horario": {},
+      "estado": "activo",
+      "destacado": true,
+      "alcaldia": {
+        "_id": "7c26ec227a8cb0d6d3cea07e80000732",
+        "nombre_institucional": "Alcaldía de Santa Ana",
+        "departamento": "",
+        "municipio": ""
+      },
+      "fecha_creacion": "2026-04-29T20:01:25.139Z",
+      "imagen_portada": "ES_Santa_Ana_06_2011_2535.jpg"
+    }
+  ]
+}

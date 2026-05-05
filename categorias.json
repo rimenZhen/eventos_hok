@@ -1,0 +1,47 @@
+{
+  "docs": [
+    {
+      "type": "configuracion",
+      "descripcion": "Catálogo de categorías de eventos",
+      "items": [
+        { "clave": "cultura",     "nombre": "Cultura",      "activo": true, "color": "#8E44AD" },
+        { "clave": "gastronomia", "nombre": "Gastronomía",  "activo": true, "color": "#E67E22" },
+        { "clave": "musica",      "nombre": "Música",       "activo": true, "color": "#2ECC71" },
+        { "clave": "deportes",    "nombre": "Deportes",     "activo": true, "color": "#3498DB" },
+        { "clave": "social",      "nombre": "Social",       "activo": true, "color": "#F1C40F" },
+        { "clave": "tecnologia",  "nombre": "Tecnología",   "activo": true, "color": "#1ABC9C" },
+        { "clave": "naturaleza",  "nombre": "Naturaleza",   "activo": true, "color": "#27AE60" }
+      ],
+      "activo": true,
+      "fecha_actualizacion": "2026-01-01T00:00:00Z"
+    },
+    {
+      "type": "configuracion",
+      "descripcion": "Catálogo de categorías de sitios",
+      "items": [
+        { "clave": "turistico",   "nombre": "Turístico",   "activo": true, "color": "#E84393" },
+        { "clave": "historico",   "nombre": "Histórico",   "activo": true, "color": "#D35400" },
+        { "clave": "natural",     "nombre": "Natural",     "activo": true, "color": "#16A085" },
+        { "clave": "cultural",    "nombre": "Cultural",    "activo": true, "color": "#8E44AD" },
+        { "clave": "religioso",   "nombre": "Religioso",   "activo": true, "color": "#BDC3C7" },
+        { "clave": "aventura",    "nombre": "Aventura",    "activo": true, "color": "#2C3E50" }
+      ],
+      "activo": true,
+      "fecha_actualizacion": "2026-01-01T00:00:00Z"
+    },
+    {
+      "type": "configuracion",
+      "descripcion": "Catálogo de categorías de negocios",
+      "items": [
+        { "clave": "restaurante",    "nombre": "Restaurante",      "activo": true, "color": "#E74C3C" },
+        { "clave": "hotel",          "nombre": "Hotel",            "activo": true, "color": "#2980B9" },
+        { "clave": "tienda",         "nombre": "Tienda",           "activo": true, "color": "#F39C12" },
+        { "clave": "servicio",       "nombre": "Servicio",         "activo": true, "color": "#9B59B6" },
+        { "clave": "entretenimiento","nombre": "Entretenimiento",  "activo": true, "color": "#1ABC9C" },
+        { "clave": "salud",          "nombre": "Salud",            "activo": true, "color": "#2ECC71" }
+      ],
+      "activo": true,
+      "fecha_actualizacion": "2026-01-01T00:00:00Z"
+    }
+  ]
+}

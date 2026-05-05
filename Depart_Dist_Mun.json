@@ -1,0 +1,678 @@
+{
+  "_id": "79bf870b2c756deeff84ab9356000b27",
+  "_rev": "1-8fa6078dd36e22089b3e3161d9937021",
+  "type": "configuracion",
+  "descripcion": "Catálogo de departamentos",
+  "items": [
+    {
+      "clave": "AHUACHAPAN",
+      "nombre": "Ahuachapán",
+      "activo": true,
+      "distritos": [
+        {
+          "clave": "AHUACHAPAN_NORTE",
+          "nombre": "Ahuachapán Norte",
+          "activo": true,
+          "municipios": [
+            { "clave": "ATIQUIZAYA", "nombre": "Atiquizaya", "activo": true },
+            { "clave": "EL_REFUGIO", "nombre": "El Refugio", "activo": true },
+            { "clave": "SAN_LORENZO", "nombre": "San Lorenzo", "activo": true },
+            { "clave": "TURIN", "nombre": "Turín", "activo": true }
+          ]
+        },
+        {
+          "clave": "AHUACHAPAN_CENTRO",
+          "nombre": "Ahuachapán Centro",
+          "activo": true,
+          "municipios": [
+            { "clave": "AHUACHAPAN", "nombre": "Ahuachapán", "activo": true },
+            { "clave": "APANECA", "nombre": "Apaneca", "activo": true },
+            { "clave": "CONCEPCION_DE_ATACO", "nombre": "Concepción de Ataco", "activo": true },
+            { "clave": "TACUBA", "nombre": "Tacuba", "activo": true }
+          ]
+        },
+        {
+          "clave": "AHUACHAPAN_SUR",
+          "nombre": "Ahuachapán Sur",
+          "activo": true,
+          "municipios": [
+            { "clave": "GUAYMANGO", "nombre": "Guaymango", "activo": true },
+            { "clave": "JUJUTLA", "nombre": "Jujutla", "activo": true },
+            { "clave": "SAN_FRANCISCO_MENENDEZ", "nombre": "San Francisco Menéndez", "activo": true },
+            { "clave": "SAN_PEDRO_PUXTLA", "nombre": "San Pedro Puxtla", "activo": true }
+          ]
+        }
+      ]
+    },
+    {
+      "clave": "CABANIAS",
+      "nombre": "Cabañas",
+      "activo": true,
+      "distritos": [
+        {
+          "clave": "CABANAS_ESTE",
+          "nombre": "Cabañas Este",
+          "activo": true,
+          "municipios": [
+            { "clave": "SENSUNTEPEQUE", "nombre": "Sensuntepeque", "activo": true },
+            { "clave": "VICTORIA", "nombre": "Victoria", "activo": true },
+            { "clave": "DOLORES", "nombre": "Dolores", "activo": true },
+            { "clave": "GUACOTECTI", "nombre": "Guacotecti", "activo": true },
+            { "clave": "SAN_ISIDRO", "nombre": "San Isidro", "activo": true }
+          ]
+        },
+        {
+          "clave": "CABANAS_OESTE",
+          "nombre": "Cabañas Oeste",
+          "activo": true,
+          "municipios": [
+            { "clave": "ILOBASCO", "nombre": "Ilobasco", "activo": true },
+            { "clave": "TEJUTEPEQUE", "nombre": "Tejutepeque", "activo": true },
+            { "clave": "JUTIAPA", "nombre": "Jutiapa", "activo": true },
+            { "clave": "CINQUERA", "nombre": "Cinquera", "activo": true }
+          ]
+        }
+      ]
+    },
+    {
+      "clave": "CHALATENANGO",
+      "nombre": "Chalatenango",
+      "activo": true,
+      "distritos": [
+        {
+          "clave": "CHALATENANGO_NORTE",
+          "nombre": "Chalatenango Norte",
+          "activo": true,
+          "municipios": [
+            { "clave": "LA_PALMA", "nombre": "La Palma", "activo": true },
+            { "clave": "CITALA", "nombre": "Citalá", "activo": true },
+            { "clave": "SAN_IGNACIO", "nombre": "San Ignacio", "activo": true }
+          ]
+        },
+        {
+          "clave": "CHALATENANGO_CENTRO",
+          "nombre": "Chalatenango Centro",
+          "activo": true,
+          "municipios": [
+            { "clave": "NUEVA_CONCEPCION", "nombre": "Nueva Concepción", "activo": true },
+            { "clave": "TEJUTLA", "nombre": "Tejutla", "activo": true },
+            { "clave": "LA_REINA", "nombre": "La Reina", "activo": true },
+            { "clave": "AGUA_CALIENTE", "nombre": "Agua Caliente", "activo": true },
+            { "clave": "DULCE_NOMBRE_DE_MARIA", "nombre": "Dulce Nombre de María", "activo": true },
+            { "clave": "EL_PARAISO", "nombre": "El Paraíso", "activo": true },
+            { "clave": "SAN_FERNANDO", "nombre": "San Fernando", "activo": true },
+            { "clave": "SAN_FRANCISCO_MORAZAN", "nombre": "San Francisco Morazán", "activo": true },
+            { "clave": "SAN_RAFAEL", "nombre": "San Rafael", "activo": true },
+            { "clave": "SANTA_RITA", "nombre": "Santa Rita", "activo": true }
+          ]
+        },
+        {
+          "clave": "CHALATENANGO_SUR",
+          "nombre": "Chalatenango Sur",
+          "activo": true,
+          "municipios": [
+            { "clave": "CHALATENANGO", "nombre": "Chalatenango", "activo": true },
+            { "clave": "ARCATAO", "nombre": "Arcatao", "activo": true },
+            { "clave": "AZACUALPA", "nombre": "Azacualpa", "activo": true },
+            { "clave": "COMALAPA", "nombre": "Comalapa", "activo": true },
+            { "clave": "CONCEPCION_QUEZALTEPEQUE", "nombre": "Concepción Quezaltepeque", "activo": true },
+            { "clave": "EL_CARRIZAL", "nombre": "El Carrizal", "activo": true },
+            { "clave": "LA_LAGUNA", "nombre": "La Laguna", "activo": true },
+            { "clave": "LAS_VUELTAS", "nombre": "Las Vueltas", "activo": true },
+            { "clave": "NOMBRE_DE_JESUS", "nombre": "Nombre de Jesús", "activo": true },
+            { "clave": "NUEVA_TRINIDAD", "nombre": "Nueva Trinidad", "activo": true },
+            { "clave": "OJOS_DE_AGUA", "nombre": "Ojos de Agua", "activo": true },
+            { "clave": "POTONICO", "nombre": "Potonico", "activo": true },
+            { "clave": "SAN_ANTONIO_DE_LA_CRUZ", "nombre": "San Antonio de la Cruz", "activo": true },
+            { "clave": "SAN_ANTONIO_LOS_RANCHOS", "nombre": "San Antonio Los Ranchos", "activo": true },
+            { "clave": "SAN_FRANCISCO_LEMPA", "nombre": "San Francisco Lempa", "activo": true },
+            { "clave": "SAN_ISIDRO_LABRADOR", "nombre": "San Isidro Labrador", "activo": true },
+            { "clave": "SAN_JOSE_CANCASQUE", "nombre": "San José Cancasque", "activo": true },
+            { "clave": "SAN_MIGUEL_DE_MERCEDES", "nombre": "San Miguel de Mercedes", "activo": true },
+            { "clave": "SAN_JOSE_LAS_FLORES", "nombre": "San José Las Flores", "activo": true },
+            { "clave": "SAN_LUIS_DEL_CARMEN", "nombre": "San Luis del Carmen", "activo": true }
+          ]
+        }
+      ]
+    },
+    {
+      "clave": "CUSCATLAN",
+      "nombre": "Cuscatlán",
+      "activo": true,
+      "distritos": [
+        {
+          "clave": "CUSCATLAN_NORTE",
+          "nombre": "Cuscatlán Norte",
+          "activo": true,
+          "municipios": [
+            { "clave": "SUCHITOTO", "nombre": "Suchitoto", "activo": true },
+            { "clave": "SAN_JOSE_GUAYABAL", "nombre": "San José Guayabal", "activo": true },
+            { "clave": "ORATORIO_DE_CONCEPCION", "nombre": "Oratorio de Concepción", "activo": true },
+            { "clave": "SAN_BARTOLOME_PERULAPIA", "nombre": "San Bartolomé Perulapía", "activo": true },
+            { "clave": "SAN_PEDRO_PERULAPAN", "nombre": "San Pedro Perulapán", "activo": true }
+          ]
+        },
+        {
+          "clave": "CUSCATLAN_SUR",
+          "nombre": "Cuscatlán Sur",
+          "activo": true,
+          "municipios": [
+            { "clave": "COJUTEPEQUE", "nombre": "Cojutepeque", "activo": true },
+            { "clave": "SAN_RAFAEL_CEDROS", "nombre": "San Rafael Cedros", "activo": true },
+            { "clave": "CANDELARIA", "nombre": "Candelaria", "activo": true },
+            { "clave": "MONTE_SAN_JUAN", "nombre": "Monte San Juan", "activo": true },
+            { "clave": "EL_CARMEN", "nombre": "El Carmen", "activo": true },
+            { "clave": "SAN_CRISTOBAL", "nombre": "San Cristóbal", "activo": true },
+            { "clave": "SANTA_CRUZ_MICHAPA", "nombre": "Santa Cruz Michapa", "activo": true },
+            { "clave": "SAN_RAMON", "nombre": "San Ramón", "activo": true },
+            { "clave": "EL_ROSARIO", "nombre": "El Rosario", "activo": true },
+            { "clave": "SANTA_CRUZ_ANALQUITO", "nombre": "Santa Cruz Analquito", "activo": true },
+            { "clave": "TENANCINGO", "nombre": "Tenancingo", "activo": true }
+          ]
+        }
+      ]
+    },
+    {
+      "clave": "LA_LIBERTAD",
+      "nombre": "La Libertad",
+      "activo": true,
+      "distritos": [
+        {
+          "clave": "LA_LIBERTAD_NORTE",
+          "nombre": "La Libertad Norte",
+          "activo": true,
+          "municipios": [
+            { "clave": "QUEZALTEPEQUE", "nombre": "Quezaltepeque", "activo": true },
+            { "clave": "SAN_MATIAS", "nombre": "San Matías", "activo": true },
+            { "clave": "SAN_PABLO_TACACHICO", "nombre": "San Pablo Tacachico", "activo": true }
+          ]
+        },
+        {
+          "clave": "LA_LIBERTAD_CENTRO",
+          "nombre": "La Libertad Centro",
+          "activo": true,
+          "municipios": [
+            { "clave": "SAN_JUAN_OPICO", "nombre": "San Juan Opico", "activo": true },
+            { "clave": "CIUDAD_ARCE", "nombre": "Ciudad Arce", "activo": true }
+          ]
+        },
+        {
+          "clave": "LA_LIBERTAD_OESTE",
+          "nombre": "La Libertad Oeste",
+          "activo": true,
+          "municipios": [
+            { "clave": "COLON", "nombre": "Colón", "activo": true },
+            { "clave": "JAYAQUE", "nombre": "Jayaque", "activo": true },
+            { "clave": "SACACOYO", "nombre": "Sacacoyo", "activo": true },
+            { "clave": "TEPECOYO", "nombre": "Tepecoyo", "activo": true },
+            { "clave": "TALNIQUE", "nombre": "Talnique", "activo": true }
+          ]
+        },
+        {
+          "clave": "LA_LIBERTAD_ESTE",
+          "nombre": "La Libertad Este",
+          "activo": true,
+          "municipios": [
+            { "clave": "ANTIGUO_CUSCATLAN", "nombre": "Antiguo Cuscatlán", "activo": true },
+            { "clave": "HUIZUCAR", "nombre": "Huizúcar", "activo": true },
+            { "clave": "NUEVO_CUSCATLAN", "nombre": "Nuevo Cuscatlán", "activo": true },
+            { "clave": "SAN_JOSE_VILLANUEVA", "nombre": "San José Villanueva", "activo": true },
+            { "clave": "ZARAGOZA", "nombre": "Zaragoza", "activo": true }
+          ]
+        },
+        {
+          "clave": "LA_LIBERTAD_COSTA",
+          "nombre": "La Libertad Costa",
+          "activo": true,
+          "municipios": [
+            { "clave": "CHILTIUPAN", "nombre": "Chiltiupán", "activo": true },
+            { "clave": "JICALAPA", "nombre": "Jicalapa", "activo": true },
+            { "clave": "LA_LIBERTAD", "nombre": "La Libertad", "activo": true },
+            { "clave": "TAMANIQUE", "nombre": "Tamanique", "activo": true },
+            { "clave": "TEOTEPEQUE", "nombre": "Teotepeque", "activo": true }
+          ]
+        },
+        {
+          "clave": "LA_LIBERTAD_SUR",
+          "nombre": "La Libertad Sur",
+          "activo": true,
+          "municipios": [
+            { "clave": "COMASAGUA", "nombre": "Comasagua", "activo": true },
+            { "clave": "SANTA_TECLA", "nombre": "Santa Tecla", "activo": true }
+          ]
+        }
+      ]
+    },
+    {
+      "clave": "LA_PAZ",
+      "nombre": "La Paz",
+      "activo": true,
+      "distritos": [
+        {
+          "clave": "LA_PAZ_OESTE",
+          "nombre": "La Paz Oeste",
+          "activo": true,
+          "municipios": [
+            { "clave": "CUYULTITAN", "nombre": "Cuyultitán", "activo": true },
+            { "clave": "OLOCUILTA", "nombre": "Olocuilta", "activo": true },
+            { "clave": "SAN_JUAN_TALPA", "nombre": "San Juan Talpa", "activo": true },
+            { "clave": "SAN_LUIS_TALPA", "nombre": "San Luis Talpa", "activo": true },
+            { "clave": "SAN_PEDRO_MASAHUAT", "nombre": "San Pedro Masahuat", "activo": true },
+            { "clave": "TAPALHUACA", "nombre": "Tapalhuaca", "activo": true },
+            { "clave": "SAN_FRANCISCO_CHINAMECA", "nombre": "San Francisco Chinameca", "activo": true }
+          ]
+        },
+        {
+          "clave": "LA_PAZ_CENTRO",
+          "nombre": "La Paz Centro",
+          "activo": true,
+          "municipios": [
+            { "clave": "EL_ROSARIO_PAZ", "nombre": "El Rosario", "activo": true },
+            { "clave": "JERUSALEN", "nombre": "Jerusalén", "activo": true },
+            { "clave": "MERCEDES_LA_CEIBA", "nombre": "Mercedes La Ceiba", "activo": true },
+            { "clave": "PARAISO_DE_OSORIO", "nombre": "Paraíso de Osorio", "activo": true },
+            { "clave": "SAN_ANTONIO_MASAHUAT", "nombre": "San Antonio Masahuat", "activo": true },
+            { "clave": "SAN_EMIGDIO", "nombre": "San Emigdio", "activo": true },
+            { "clave": "SAN_JUAN_TEPEZONTES", "nombre": "San Juan Tepezontes", "activo": true },
+            { "clave": "SAN_LUIS_LA_HERRADURA", "nombre": "San Luis La Herradura", "activo": true },
+            { "clave": "SAN_MIGUEL_TEPEZONTES", "nombre": "San Miguel Tepezontes", "activo": true },
+            { "clave": "SAN_PEDRO_NONUALCO", "nombre": "San Pedro Nonualco", "activo": true },
+            { "clave": "SANTA_MARIA_OSTUMA", "nombre": "Santa María Ostuma", "activo": true },
+            { "clave": "SANTIAGO_NONUALCO", "nombre": "Santiago Nonualco", "activo": true }
+          ]
+        },
+        {
+          "clave": "LA_PAZ_ESTE",
+          "nombre": "La Paz Este",
+          "activo": true,
+          "municipios": [
+            { "clave": "SAN_JUAN_NONUALCO", "nombre": "San Juan Nonualco", "activo": true },
+            { "clave": "SAN_RAFAEL_OBRAJUELO", "nombre": "San Rafael Obrajuelo", "activo": true },
+            { "clave": "ZACATECOLUCA", "nombre": "Zacatecoluca", "activo": true }
+          ]
+        }
+      ]
+    },
+    {
+      "clave": "LA_UNION",
+      "nombre": "La Unión",
+      "activo": true,
+      "distritos": [
+        {
+          "clave": "LA_UNION_NORTE",
+          "nombre": "La Unión Norte",
+          "activo": true,
+          "municipios": [
+            { "clave": "ANAMOROS", "nombre": "Anamorós", "activo": true },
+            { "clave": "BOLIVAR", "nombre": "Bolívar", "activo": true },
+            { "clave": "CONCEPCION_DE_ORIENTE", "nombre": "Concepción de Oriente", "activo": true },
+            { "clave": "EL_SAUCE", "nombre": "El Sauce", "activo": true },
+            { "clave": "LISLIQUE", "nombre": "Lislique", "activo": true },
+            { "clave": "NUEVA_ESPARTA", "nombre": "Nueva Esparta", "activo": true },
+            { "clave": "PASAQUINA", "nombre": "Pasaquina", "activo": true },
+            { "clave": "POLOROS", "nombre": "Polorós", "activo": true },
+            { "clave": "SAN_JOSE_LA_FUENTE", "nombre": "San José La Fuente", "activo": true },
+            { "clave": "SANTA_ROSA_DE_LIMA", "nombre": "Santa Rosa de Lima", "activo": true }
+          ]
+        },
+        {
+          "clave": "LA_UNION_SUR",
+          "nombre": "La Unión Sur",
+          "activo": true,
+          "municipios": [
+            { "clave": "CONCHAGUA", "nombre": "Conchagua", "activo": true },
+            { "clave": "EL_CARMEN_UNION", "nombre": "El Carmen", "activo": true },
+            { "clave": "INTIPUCA", "nombre": "Intipucá", "activo": true },
+            { "clave": "LA_UNION", "nombre": "La Unión", "activo": true },
+            { "clave": "MEANGUERA_DEL_GOLFO", "nombre": "Meanguera del Golfo", "activo": true },
+            { "clave": "SAN_ALEJO", "nombre": "San Alejo", "activo": true },
+            { "clave": "YAYANTIQUE", "nombre": "Yayantique", "activo": true },
+            { "clave": "YUCUAIQUIN", "nombre": "Yucuaiquín", "activo": true }
+          ]
+        }
+      ]
+    },
+    {
+      "clave": "MORAZAN",
+      "nombre": "Morazán",
+      "activo": true,
+      "distritos": [
+        {
+          "clave": "MORAZAN_NORTE",
+          "nombre": "Morazán Norte",
+          "activo": true,
+          "municipios": [
+            { "clave": "ARAMBALA", "nombre": "Arambala", "activo": true },
+            { "clave": "CACAOPERA", "nombre": "Cacaopera", "activo": true },
+            { "clave": "CORINTO", "nombre": "Corinto", "activo": true },
+            { "clave": "EL_ROSARIO_MORAZAN", "nombre": "El Rosario", "activo": true },
+            { "clave": "JOATECA", "nombre": "Joateca", "activo": true },
+            { "clave": "JOCOAITIQUE", "nombre": "Jocoaitique", "activo": true },
+            { "clave": "MEANGUERA", "nombre": "Meanguera", "activo": true },
+            { "clave": "PERQUIN", "nombre": "Perquín", "activo": true },
+            { "clave": "SAN_FERNANDO_MORAZAN", "nombre": "San Fernando", "activo": true },
+            { "clave": "SAN_ISIDRO_MORAZAN", "nombre": "San Isidro", "activo": true },
+            { "clave": "TOROLA", "nombre": "Torola", "activo": true }
+          ]
+        },
+        {
+          "clave": "MORAZAN_SUR",
+          "nombre": "Morazán Sur",
+          "activo": true,
+          "municipios": [
+            { "clave": "CHILANGA", "nombre": "Chilanga", "activo": true },
+            { "clave": "DELICIAS_DE_CONCEPCION", "nombre": "Delicias de Concepción", "activo": true },
+            { "clave": "EL_DIVISADERO", "nombre": "El Divisadero", "activo": true },
+            { "clave": "GUALOCOCTI", "nombre": "Gualococti", "activo": true },
+            { "clave": "GUATAJIAGUA", "nombre": "Guatajiagua", "activo": true },
+            { "clave": "JOCORO", "nombre": "Jocoro", "activo": true },
+            { "clave": "LOLOTIQUILLO", "nombre": "Lolotiquillo", "activo": true },
+            { "clave": "OSICALA", "nombre": "Osicala", "activo": true },
+            { "clave": "SAN_CARLOS", "nombre": "San Carlos", "activo": true },
+            { "clave": "SAN_FRANCISCO_GOTERA", "nombre": "San Francisco Gotera", "activo": true },
+            { "clave": "SAN_SIMON", "nombre": "San Simón", "activo": true },
+            { "clave": "SENSEMBRA", "nombre": "Sensembra", "activo": true },
+            { "clave": "SOCIEDAD", "nombre": "Sociedad", "activo": true },
+            { "clave": "YAMABAL", "nombre": "Yamabal", "activo": true },
+            { "clave": "YOLOAIQUIN", "nombre": "Yoloaiquín", "activo": true }
+          ]
+        }
+      ]
+    },
+    {
+      "clave": "SAN_MIGUEL",
+      "nombre": "San Miguel",
+      "activo": true,
+      "distritos": [
+        {
+          "clave": "SAN_MIGUEL_NORTE",
+          "nombre": "San Miguel Norte",
+          "activo": true,
+          "municipios": [
+            { "clave": "CIUDAD_BARRIOS", "nombre": "Ciudad Barrios", "activo": true },
+            { "clave": "SESORI", "nombre": "Sesori", "activo": true },
+            { "clave": "NUEVO_EDEN_DE_SAN_JUAN", "nombre": "Nuevo Edén de San Juan", "activo": true },
+            { "clave": "SAN_GERARDO", "nombre": "San Gerardo", "activo": true },
+            { "clave": "SAN_LUIS_DE_LA_REINA", "nombre": "San Luis de La Reina", "activo": true },
+            { "clave": "CAROLINA", "nombre": "Carolina", "activo": true },
+            { "clave": "SAN_ANTONIO_DEL_MOSCO", "nombre": "San Antonio del Mosco", "activo": true },
+            { "clave": "CHAPELTIQUE", "nombre": "Chapeltique", "activo": true }
+          ]
+        },
+        {
+          "clave": "SAN_MIGUEL_CENTRO",
+          "nombre": "San Miguel Centro",
+          "activo": true,
+          "municipios": [
+            { "clave": "SAN_MIGUEL", "nombre": "San Miguel", "activo": true },
+            { "clave": "COMACARAN", "nombre": "Comacarán", "activo": true },
+            { "clave": "ULUAZAPA", "nombre": "Uluazapa", "activo": true },
+            { "clave": "MONCAGUA", "nombre": "Moncagua", "activo": true },
+            { "clave": "QUELEPA", "nombre": "Quelepa", "activo": true },
+            { "clave": "CHIRILAGUA", "nombre": "Chirilagua", "activo": true }
+          ]
+        },
+        {
+          "clave": "SAN_MIGUEL_OESTE",
+          "nombre": "San Miguel Oeste",
+          "activo": true,
+          "municipios": [
+            { "clave": "CHINAMECA", "nombre": "Chinameca", "activo": true },
+            { "clave": "NUEVA_GUADALUPE", "nombre": "Nueva Guadalupe", "activo": true },
+            { "clave": "LOLOTIQUE", "nombre": "Lolotique", "activo": true },
+            { "clave": "SAN_JORGE", "nombre": "San Jorge", "activo": true },
+            { "clave": "SAN_RAFAEL_ORIENTE", "nombre": "San Rafael Oriente", "activo": true },
+            { "clave": "EL_TRANSITO", "nombre": "El Tránsito", "activo": true }
+          ]
+        }
+      ]
+    },
+    {
+      "clave": "SAN_SALVADOR",
+      "nombre": "San Salvador",
+      "activo": true,
+      "distritos": [
+        {
+          "clave": "SAN_SALVADOR_NORTE",
+          "nombre": "San Salvador Norte",
+          "activo": true,
+          "municipios": [
+            { "clave": "AGUILARES", "nombre": "Aguilares", "activo": true },
+            { "clave": "EL_PAISNAL", "nombre": "El Paisnal", "activo": true },
+            { "clave": "GUAZAPA", "nombre": "Guazapa", "activo": true }
+          ]
+        },
+        {
+          "clave": "SAN_SALVADOR_OESTE",
+          "nombre": "San Salvador Oeste",
+          "activo": true,
+          "municipios": [
+            { "clave": "APOPA", "nombre": "Apopa", "activo": true },
+            { "clave": "NEJAPA", "nombre": "Nejapa", "activo": true }
+          ]
+        },
+        {
+          "clave": "SAN_SALVADOR_ESTE",
+          "nombre": "San Salvador Este",
+          "activo": true,
+          "municipios": [
+            { "clave": "ILOPANGO", "nombre": "Ilopango", "activo": true },
+            { "clave": "SAN_MARTIN", "nombre": "San Martín", "activo": true },
+            { "clave": "SOYAPANGO", "nombre": "Soyapango", "activo": true },
+            { "clave": "TONACATEPEQUE", "nombre": "Tonacatepeque", "activo": true }
+          ]
+        },
+        {
+          "clave": "SAN_SALVADOR_CENTRO",
+          "nombre": "San Salvador Centro",
+          "activo": true,
+          "municipios": [
+            { "clave": "AYUTUXTEPEQUE", "nombre": "Ayutuxtepeque", "activo": true },
+            { "clave": "MEJICANOS", "nombre": "Mejicanos", "activo": true },
+            { "clave": "SAN_SALVADOR", "nombre": "San Salvador", "activo": true },
+            { "clave": "CUSCATANCINGO", "nombre": "Cuscatancingo", "activo": true },
+            { "clave": "CIUDAD_DELGADO", "nombre": "Ciudad Delgado", "activo": true }
+          ]
+        },
+        {
+          "clave": "SAN_SALVADOR_SUR",
+          "nombre": "San Salvador Sur",
+          "activo": true,
+          "municipios": [
+            { "clave": "PANCHIMALCO", "nombre": "Panchimalco", "activo": true },
+            { "clave": "ROSARIO_DE_MORA", "nombre": "Rosario de Mora", "activo": true },
+            { "clave": "SAN_MARCOS", "nombre": "San Marcos", "activo": true },
+            { "clave": "SANTO_TOMAS", "nombre": "Santo Tomás", "activo": true },
+            { "clave": "SANTIAGO_TEXACUANGOS", "nombre": "Santiago Texacuangos", "activo": true }
+          ]
+        }
+      ]
+    },
+    {
+      "clave": "SAN_VICENTE",
+      "nombre": "San Vicente",
+      "activo": true,
+      "distritos": [
+        {
+          "clave": "SAN_VICENTE_NORTE",
+          "nombre": "San Vicente Norte",
+          "activo": true,
+          "municipios": [
+            { "clave": "APASTEPEQUE", "nombre": "Apastepeque", "activo": true },
+            { "clave": "SANTA_CLARA", "nombre": "Santa Clara", "activo": true },
+            { "clave": "SAN_ILDEFONSO", "nombre": "San Ildefonso", "activo": true },
+            { "clave": "SAN_ESTEBAN_CATARINA", "nombre": "San Esteban Catarina", "activo": true },
+            { "clave": "SAN_SEBASTIAN", "nombre": "San Sebastián", "activo": true },
+            { "clave": "SAN_LORENZO_SV", "nombre": "San Lorenzo", "activo": true },
+            { "clave": "SANTO_DOMINGO", "nombre": "Santo Domingo", "activo": true }
+          ]
+        },
+        {
+          "clave": "SAN_VICENTE_SUR",
+          "nombre": "San Vicente Sur",
+          "activo": true,
+          "municipios": [
+            { "clave": "SAN_VICENTE", "nombre": "San Vicente", "activo": true },
+            { "clave": "GUADALUPE", "nombre": "Guadalupe", "activo": true },
+            { "clave": "VERAPAZ", "nombre": "Verapaz", "activo": true },
+            { "clave": "TEPETITAN", "nombre": "Tepetitán", "activo": true },
+            { "clave": "TECOLUCA", "nombre": "Tecoluca", "activo": true },
+            { "clave": "SAN_CAYETANO_ISTEPEQUE", "nombre": "San Cayetano Istepeque", "activo": true }
+          ]
+        }
+      ]
+    },
+    {
+      "clave": "SANTA_ANA",
+      "nombre": "Santa Ana",
+      "activo": true,
+      "distritos": [
+        {
+          "clave": "SANTA_ANA_NORTE",
+          "nombre": "Santa Ana Norte",
+          "activo": true,
+          "municipios": [
+            { "clave": "MASAHUAT", "nombre": "Masahuat", "activo": true },
+            { "clave": "METAPAN", "nombre": "Metapán", "activo": true },
+            { "clave": "SANTA_ROSA_GUACHIPILIN", "nombre": "Santa Rosa Guachipilín", "activo": true },
+            { "clave": "TEXISTEPEQUE", "nombre": "Texistepeque", "activo": true }
+          ]
+        },
+        {
+          "clave": "SANTA_ANA_CENTRO",
+          "nombre": "Santa Ana Centro",
+          "activo": true,
+          "municipios": [
+            { "clave": "SANTA_ANA", "nombre": "Santa Ana", "activo": true }
+          ]
+        },
+        {
+          "clave": "SANTA_ANA_ESTE",
+          "nombre": "Santa Ana Este",
+          "activo": true,
+          "municipios": [
+            { "clave": "COATEPEQUE", "nombre": "Coatepeque", "activo": true },
+            { "clave": "EL_CONGO", "nombre": "El Congo", "activo": true }
+          ]
+        },
+        {
+          "clave": "SANTA_ANA_OESTE",
+          "nombre": "Santa Ana Oeste",
+          "activo": true,
+          "municipios": [
+            { "clave": "CANDELARIA_DE_LA_FRONTERA", "nombre": "Candelaria de la Frontera", "activo": true },
+            { "clave": "CHALCHUAPA", "nombre": "Chalchuapa", "activo": true },
+            { "clave": "EL_PORVENIR", "nombre": "El Porvenir", "activo": true },
+            { "clave": "SAN_ANTONIO_PAJONAL", "nombre": "San Antonio Pajonal", "activo": true },
+            { "clave": "SAN_SEBASTIAN_SALITRILLO", "nombre": "San Sebastián Salitrillo", "activo": true },
+            { "clave": "SANTIAGO_DE_LA_FRONTERA", "nombre": "Santiago de la Frontera", "activo": true }
+          ]
+        }
+      ]
+    },
+    {
+      "clave": "SONSONATE",
+      "nombre": "Sonsonate",
+      "activo": true,
+      "distritos": [
+        {
+          "clave": "SONSONATE_NORTE",
+          "nombre": "Sonsonate Norte",
+          "activo": true,
+          "municipios": [
+            { "clave": "JUAYUA", "nombre": "Juayúa", "activo": true },
+            { "clave": "NAHUIZALCO", "nombre": "Nahuizalco", "activo": true },
+            { "clave": "SALCOATITAN", "nombre": "Salcoatitán", "activo": true },
+            { "clave": "SANTA_CATARINA_MASAHUAT", "nombre": "Santa Catarina Masahuat", "activo": true }
+          ]
+        },
+        {
+          "clave": "SONSONATE_CENTRO",
+          "nombre": "Sonsonate Centro",
+          "activo": true,
+          "municipios": [
+            { "clave": "SONSONATE", "nombre": "Sonsonate", "activo": true },
+            { "clave": "SONZACATE", "nombre": "Sonzacate", "activo": true },
+            { "clave": "NAHULINGO", "nombre": "Nahulingo", "activo": true },
+            { "clave": "SAN_ANTONIO_DEL_MONTE", "nombre": "San Antonio del Monte", "activo": true },
+            { "clave": "SANTO_DOMINGO_DE_GUZMAN", "nombre": "Santo Domingo de Guzmán", "activo": true }
+          ]
+        },
+        {
+          "clave": "SONSONATE_ESTE",
+          "nombre": "Sonsonate Este",
+          "activo": true,
+          "municipios": [
+            { "clave": "IZALCO", "nombre": "Izalco", "activo": true },
+            { "clave": "ARMENIA", "nombre": "Armenia", "activo": true },
+            { "clave": "CALUCO", "nombre": "Caluco", "activo": true },
+            { "clave": "SAN_JULIAN", "nombre": "San Julián", "activo": true },
+            { "clave": "CUISNAHUAT", "nombre": "Cuisnahuat", "activo": true },
+            { "clave": "SANTA_ISABEL_ISHUATAN", "nombre": "Santa Isabel Ishuatán", "activo": true }
+          ]
+        },
+        {
+          "clave": "SONSONATE_OESTE",
+          "nombre": "Sonsonate Oeste",
+          "activo": true,
+          "municipios": [
+            { "clave": "ACAJUTLA", "nombre": "Acajutla", "activo": true }
+          ]
+        }
+      ]
+    },
+    {
+      "clave": "USULUTAN",
+      "nombre": "Usulután",
+      "activo": true,
+      "distritos": [
+        {
+          "clave": "USULUTAN_NORTE",
+          "nombre": "Usulután Norte",
+          "activo": true,
+          "municipios": [
+            { "clave": "SANTIAGO_DE_MARIA", "nombre": "Santiago de María", "activo": true },
+            { "clave": "ALEGRIA", "nombre": "Alegría", "activo": true },
+            { "clave": "BERLIN", "nombre": "Berlín", "activo": true },
+            { "clave": "MERCEDES_UMAÑA", "nombre": "Mercedes Umaña", "activo": true },
+            { "clave": "JUCUAPA", "nombre": "Jucuapa", "activo": true },
+            { "clave": "EL_TRIUNFO", "nombre": "El Triunfo", "activo": true },
+            { "clave": "ESTANZUELAS", "nombre": "Estanzuelas", "activo": true },
+            { "clave": "SAN_BUENAVENTURA", "nombre": "San Buenaventura", "activo": true },
+            { "clave": "NUEVA_GRANADA", "nombre": "Nueva Granada", "activo": true }
+          ]
+        },
+        {
+          "clave": "USULUTAN_ESTE",
+          "nombre": "Usulután Este",
+          "activo": true,
+          "municipios": [
+            { "clave": "USULUTAN", "nombre": "Usulután", "activo": true },
+            { "clave": "JUCUARAN", "nombre": "Jucuarán", "activo": true },
+            { "clave": "SAN_DIONISIO", "nombre": "San Dionisio", "activo": true },
+            { "clave": "CONCEPCION_BATRES", "nombre": "Concepción Batres", "activo": true },
+            { "clave": "SANTA_MARIA", "nombre": "Santa María", "activo": true },
+            { "clave": "OZATLAN", "nombre": "Ozatlán", "activo": true },
+            { "clave": "TECAPAN", "nombre": "Tecapán", "activo": true },
+            { "clave": "SANTA_ELENA", "nombre": "Santa Elena", "activo": true },
+            { "clave": "CALIFORNIA", "nombre": "California", "activo": true },
+            { "clave": "EREGUAYQUIN", "nombre": "Ereguayquín", "activo": true }
+          ]
+        },
+        {
+          "clave": "USULUTAN_OESTE",
+          "nombre": "Usulután Oeste",
+          "activo": true,
+          "municipios": [
+            { "clave": "JIQUILISCO", "nombre": "Jiquilisco", "activo": true },
+            { "clave": "PUERTO_EL_TRIUNFO", "nombre": "Puerto El Triunfo", "activo": true },
+            { "clave": "SAN_AGUSTIN", "nombre": "San Agustín", "activo": true },
+            { "clave": "SAN_FRANCISCO_JAVIER", "nombre": "San Francisco Javier", "activo": true }
+          ]
+        }
+      ]
+    }
+  ],
+  "activo": true,
+  "fecha_actualizacion": "2026-01-01T00:00:00Z"
+}
