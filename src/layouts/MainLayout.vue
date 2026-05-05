@@ -121,10 +121,13 @@
           </template>
         </template>
 
-
-<q-item clickable @click="goToInstitutional">
-  <q-item-section avatar><q-icon name="info" /></q-item-section>
-  <q-item-section>Políticas y Sobre Nosotros</q-item-section>
+        <q-item clickable to="/politicas">
+  <q-item-section avatar><q-icon name="gavel" /></q-item-section>
+  <q-item-section>Políticas</q-item-section>
+</q-item>
+<q-item clickable to="/sobre-nosotros">
+  <q-item-section avatar><q-icon name="group" /></q-item-section>
+  <q-item-section>Sobre Nosotros</q-item-section>
 </q-item>
 
       </q-list>
@@ -147,11 +150,6 @@ const leftDrawerOpen = ref(false)
 const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
-
-function goToInstitutional() {
-  router.push('/institucional')
-}
-
 
 const isDark = computed(() => $q.dark.isActive)
 
