@@ -65,3 +65,5 @@ curl -d @categorias.json      -H "Content-Type: application/json"      -X POST  
 
 See [Configuring quasar.config.js](https://v2.quasar.dev/quasar-cli-vite/quasar-config-js).
 
+# eventos
+apps de eventos locales
