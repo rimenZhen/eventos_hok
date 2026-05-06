@@ -65,8 +65,8 @@
 
             <div class="col-12 col-md-5">
               <q-input
-                v-model.number="form.precio_entrada"
-                label="Precio de entrada"
+                v-model.number="form.costo"
+                label="Precio"
                 type="number"
                 step="0.01"
                 min="0"
@@ -118,40 +118,62 @@
 
         <!-- Paso 2 -->
         <section v-if="currentStep === 2" class="step-content">
-          <div class="text-subtitle1 text-weight-medium q-mb-md">Horarios de atención</div>
+          <div class="horarios-header">
+            <div>
+              <div class="text-subtitle1 text-weight-medium">Horarios de atención</div>
+              <div class="text-caption text-grey-6">
+                Activa únicamente los días en los que el sitio estará abierto.
+              </div>
+            </div>
+          </div>
+
           <q-list bordered separator class="rounded-borders horarios-list">
-            <q-item v-for="dia in diasSemana" :key="dia" class="q-py-md horario-item">
+            <q-item v-for="dia in diasSemana" :key="dia" class="horario-item">
               <q-item-section class="dia-section">
                 <q-item-label class="text-weight-medium">{{ dia }}</q-item-label>
               </q-item-section>
 
-              <q-item-section>
-                <div class="row q-col-gutter-sm items-center">
-                  <div class="col-12 col-sm-auto">
-                    <q-toggle v-model="form.horario[dia].cerrado" label="Cerrado" />
-                  </div>
-                  <template v-if="!form.horario[dia].cerrado">
-                    <div class="col-6 col-sm-auto">
-                      <q-input
-                        v-model="form.horario[dia].apertura"
-                        label="Apertura"
-                        type="time"
-                        dense
-                        outlined
-                        class="hora-input"
-                      />
-                    </div>
-                    <div class="col-6 col-sm-auto">
-                      <q-input
-                        v-model="form.horario[dia].cierre"
-                        label="Cierre"
-                        type="time"
-                        dense
-                        outlined
-                        class="hora-input"
-                      />
-                    </div>
-                  </template>
+              <q-item-section class="horario-section">
+                <div class="horario-top-row">
+                  <q-toggle
+                    :model-value="!form.horario[dia].cerrado"
+                    color="teal"
+                    :label="form.horario[dia].cerrado ? 'Cerrado' : 'Abierto'"
+                    @update:model-value="(val) => (form.horario[dia].cerrado = !val)"
+                  />
+
+                  <q-chip
+                    dense
+                    square
+                    :color="form.horario[dia].cerrado ? 'grey-7' : 'teal'"
+                    text-color="white"
+                  >
+                    {{ form.horario[dia].cerrado ? 'Sin atención' : 'Atiende este día' }}
+                  </q-chip>
+                </div>
+
+                <div v-if="!form.horario[dia].cerrado" class="horario-inputs">
+                  <q-input
+                    v-model="form.horario[dia].apertura"
+                    label="Hora de apertura"
+                    type="time"
+                    dense
+                    outlined
+                    class="hora-input"
+                  />
+
+                  <q-input
+                    v-model="form.horario[dia].cierre"
+                    label="Hora de cierre"
+                    type="time"
+                    dense
+                    outlined
+                    class="hora-input"
+                  />
+                </div>
+
+                <div v-else class="text-caption text-grey-6 horario-cerrado-text">
+                  Este día aparecerá como cerrado.
                 </div>
               </q-item-section>
             </q-item>
@@ -173,33 +195,18 @@
               </div>
             </div>
 
-            <div class="col-12 col-md-6">
+            <div class="col-12">
               <q-select
-                v-model="form.departamento"
-                :options="departamentosOptions"
-                label="Departamento *"
+                v-model="form.distrito"
+                :options="distritosOptions"
+                label="Distrito donde se ubica el sitio *"
                 outlined
                 emit-value
                 map-options
-                readonly
-                hint="Se asigna automáticamente según la alcaldía"
-                :error="!!errors.departamento"
-                :error-message="errors.departamento"
-              />
-            </div>
-
-            <div class="col-12 col-md-6">
-              <q-select
-                v-model="form.municipio"
-                :options="municipiosOptions"
-                label="Municipio *"
-                outlined
-                emit-value
-                map-options
-                readonly
-                hint="Se asigna automáticamente según la alcaldía"
-                :error="!!errors.municipio"
-                :error-message="errors.municipio"
+                :disable="distritosOptions.length === 0"
+                :error="!!errors.distrito"
+                :error-message="errors.distrito"
+                hint="Solo se muestran los distritos asociados a tu alcaldía"
               />
             </div>
 
@@ -213,19 +220,20 @@
         <section v-if="currentStep === 4" class="step-content">
           <div class="text-h6 q-mb-sm">Resumen del sitio</div>
           <q-list dense bordered class="rounded-borders q-mb-md">
-            <q-item
-              ><q-item-section>Nombre: {{ form.nombre || '---' }}</q-item-section></q-item
-            >
-            <q-item
-              ><q-item-section>Categoría: {{ categoriaLabel || '---' }}</q-item-section></q-item
-            >
-            <q-item
-              ><q-item-section>Ubicación: {{ resumenUbicacion }}</q-item-section></q-item
-            >
             <q-item>
-              <q-item-section>
-                Precio: {{ Number(form.precio_entrada || 0).toFixed(2) }} USD
-              </q-item-section>
+              <q-item-section>Nombre: {{ form.nombre || '---' }}</q-item-section>
+            </q-item>
+            <q-item>
+              <q-item-section>Descripción: {{ form.descripcion || '---' }}</q-item-section>
+            </q-item>
+            <q-item>
+              <q-item-section>Precio: {{ Number(form.costo || 0).toFixed(2) }} USD</q-item-section>
+            </q-item>
+            <q-item>
+              <q-item-section>Distrito: {{ distritoSeleccionado?.nombre || '---' }}</q-item-section>
+            </q-item>
+            <q-item>
+              <q-item-section>Dirección detallada: {{ form.direccion || '---' }}</q-item-section>
             </q-item>
           </q-list>
           <div class="text-caption text-grey-7">
@@ -309,57 +317,29 @@ const portadaFile = ref(null)
 const portadaInput = ref(null)
 const previewPortada = ref(null)
 const errors = reactive({})
-
-const detalleAlcaldia = computed(() => auth.user?.detalles?.detalle_alcaldia || {})
+const distritosCatalogo = ref([])
 
 const categoriasOptions = computed(() =>
   (configStore.categoriasSitios || []).map((c) => ({ label: c.nombre, value: c.clave })),
 )
 
-const departamentosOptions = computed(() => {
-  const departamentoClave = form.departamento || detalleAlcaldia.value.departamento
-  if (!departamentoClave) return []
+const distritosFuente = computed(() =>
+  (configStore.distritos || []).length > 0 ? configStore.distritos : distritosCatalogo.value,
+)
 
-  const departamento = configStore.departamentos?.find((d) => d.clave === departamentoClave)
+const distritosOptions = computed(() =>
+  (distritosFuente.value || [])
+    .filter((distrito) => distrito.activo !== false && distrito.alcaldia === form.municipio)
+    .map((distrito) => ({ label: distrito.nombre, value: distrito.clave })),
+)
 
-  return [
-    {
-      label: departamento?.nombre || departamentoClave,
-      value: departamentoClave,
-    },
-  ]
-})
-
-const municipiosOptions = computed(() => {
-  const municipioClave = form.municipio || detalleAlcaldia.value.municipio
-  if (!municipioClave) return []
-
-  const alcaldia = configStore.alcaldias?.find((a) => a.clave === municipioClave)
-
-  return [
-    {
-      label: alcaldia?.nombre || municipioClave,
-      value: municipioClave,
-    },
-  ]
-})
-
-const categoriaLabel = computed(() => {
-  return categoriasOptions.value.find((c) => c.value === form.categoria)?.label || form.categoria
-})
-
-const resumenUbicacion = computed(() => {
-  if (form.direccion) return form.direccion
-  if (form.departamento || form.municipio) {
-    const depNombre =
-      departamentosOptions.value.find((d) => d.value === form.departamento)?.label ||
-      form.departamento
-    const munNombre =
-      municipiosOptions.value.find((m) => m.value === form.municipio)?.label || form.municipio
-    return `${munNombre || ''}, ${depNombre}`.trim()
+const distritoSeleccionado = computed(() => {
+  const distrito = (distritosFuente.value || []).find((item) => item.clave === form.distrito)
+  if (!distrito) return null
+  return {
+    clave: distrito.clave,
+    nombre: distrito.nombre,
   }
-  if (form.lat !== null && form.lng !== null) return `${form.lat}, ${form.lng}`
-  return '---'
 })
 
 watch(
@@ -370,25 +350,40 @@ watch(
   },
 )
 
+async function cargarDistritosFallback() {
+  try {
+    const result = await couch.find(import.meta.env.VITE_DB_DATA, { type: 'configuracion' })
+    const distritosDoc = (result.docs || []).find((doc) => {
+      const descripcion = doc.descripcion?.toLowerCase() || ''
+      return descripcion.includes('distrito') || descripcion.includes('distritos')
+    })
+    distritosCatalogo.value = distritosDoc?.items?.filter((item) => item.activo !== false) || []
+  } catch (error) {
+    console.error(error)
+    distritosCatalogo.value = []
+  }
+}
+
 async function prepararFormulario() {
   limpiarErrores()
   resetForm()
   currentStep.value = 1
 
-  if ((configStore.categoriasSitios || []).length === 0) await configStore.fetchCatalogos()
+  if (
+    (configStore.categoriasSitios || []).length === 0 ||
+    (configStore.distritos || []).length === 0
+  )
+    await configStore.fetchCatalogos()
+  if ((configStore.distritos || []).length === 0) await cargarDistritosFallback()
 
-  aplicarDatosAlcaldia()
+  if (!isEdit.value) {
+    const detalle = auth.user?.detalles?.detalle_alcaldia
+    if (detalle?.departamento) form.departamento = detalle.departamento
+    if (detalle?.municipio) form.municipio = detalle.municipio
+  }
 
   if (props.sitio) cargarSitio(props.sitio)
-  aplicarDatosAlcaldia()
   inicializarHorario()
-}
-
-function aplicarDatosAlcaldia() {
-  const detalle = detalleAlcaldia.value
-
-  form.departamento = detalle.departamento || ''
-  form.municipio = detalle.municipio || ''
 }
 
 function getEmptyForm() {
@@ -396,11 +391,12 @@ function getEmptyForm() {
     nombre: '',
     categoria: null,
     descripcion: '',
-    precio_entrada: 0,
+    costo: 0,
     lat: null,
     lng: null,
     departamento: '',
     municipio: '',
+    distrito: null,
     direccion: '',
     horario: {},
   }
@@ -416,7 +412,7 @@ function resetForm() {
 function inicializarHorario() {
   diasSemana.forEach((dia) => {
     if (!form.horario[dia]) {
-      form.horario[dia] = { apertura: '09:00', cierre: '18:00', cerrado: false }
+      form.horario[dia] = { apertura: '09:00', cierre: '18:00', cerrado: true }
     }
   })
 }
@@ -425,17 +421,20 @@ function cargarSitio(s) {
   const dep = typeof s.departamento === 'object' ? s.departamento.value : s.departamento
   const mun =
     typeof s.municipio === 'object' ? s.municipio.nombre || s.municipio.value : s.municipio
+  const distrito =
+    typeof s.distrito === 'object' ? s.distrito.clave || s.distrito.value : s.distrito
 
   Object.assign(form, {
     nombre: s.nombre || '',
     categoria: typeof s.categoria === 'object' ? s.categoria.value : s.categoria || null,
     descripcion: s.descripcion || '',
-    precio_entrada: s.precio_entrada || 0,
+    costo: s.costo ?? s.precio_entrada ?? 0,
     lat: s.localizacion?.lat ?? null,
     lng: s.localizacion?.lng ?? null,
     departamento: dep || '',
     municipio: mun || '',
-    direccion: s.direccion || '',
+    distrito: distrito || null,
+    direccion: s.direccion || s.localizacion?.direccion || '',
     horario: s.horario ? { ...s.horario } : {},
   })
   previewPortada.value = s.imagen_portada || null
@@ -471,8 +470,9 @@ function validarPaso1() {
 }
 
 function validarPaso3() {
-  if (!form.departamento) errors.departamento = 'El departamento es obligatorio'
-  if (!form.municipio) errors.municipio = 'El municipio es obligatorio'
+  if (!form.departamento) errors.departamento = 'No se pudo obtener el departamento de la alcaldía'
+  if (!form.municipio) errors.municipio = 'No se pudo obtener el municipio de la alcaldía'
+  if (!form.distrito) errors.distrito = 'Selecciona el distrito donde se ubica el sitio'
   if (form.lat === null || form.lng === null)
     errors.ubicacion = 'Selecciona una ubicación en el mapa'
 }
@@ -510,10 +510,11 @@ async function guardar() {
       nombre: form.nombre,
       categoria: form.categoria,
       descripcion: form.descripcion,
-      precio_entrada: form.precio_entrada || 0,
-      localizacion: { lat: form.lat, lng: form.lng },
+      costo: form.costo || 0,
+      localizacion: { lat: Number(form.lat), lng: Number(form.lng) },
       departamento: form.departamento,
       municipio: form.municipio,
+      distrito: distritoSeleccionado.value,
       direccion: form.direccion,
       horario: form.horario,
       estado: 'activo', // siempre se publica
@@ -679,16 +680,48 @@ async function guardar() {
   color: white;
 }
 
+.horarios-header {
+  margin-bottom: 14px;
+}
+
+.horarios-list {
+  overflow: hidden;
+}
+
 .horario-item {
-  flex-wrap: wrap;
+  align-items: flex-start;
+  padding: 18px 16px;
 }
 
 .dia-section {
   max-width: 130px;
+  padding-top: 8px;
+}
+
+.horario-section {
+  min-width: 0;
+}
+
+.horario-top-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.horario-inputs {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .hora-input {
-  width: 125px;
+  width: 180px;
+}
+
+.horario-cerrado-text {
+  margin-top: 4px;
 }
 
 @keyframes fadeIn {
@@ -726,7 +759,16 @@ async function guardar() {
   .dia-section {
     max-width: none;
     flex-basis: 100%;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
+    padding-top: 0;
+  }
+
+  .horario-top-row {
+    gap: 8px;
+  }
+
+  .horario-inputs {
+    flex-direction: column;
   }
 
   .hora-input {
