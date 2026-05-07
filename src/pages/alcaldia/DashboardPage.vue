@@ -22,7 +22,7 @@
                 header
                 :class="$q.dark.isActive ? 'bg-grey-9 text-white' : 'bg-purple-1 text-dark'"
               >
-                Administrar Alcaldía
+                Menu de opciones
               </q-item-label>
 
               <q-item clickable v-close-popup @click="modalCrearOpen = true">
@@ -30,13 +30,6 @@
                   <q-btn round dense color="primary" icon="description" />
                 </q-item-section>
                 <q-item-section>Crear nuevo evento/sitio</q-item-section>
-              </q-item>
-
-              <q-item clickable v-close-popup>
-                <q-item-section avatar>
-                  <q-btn round dense color="primary" icon="info" />
-                </q-item-section>
-                <q-item-section>Información</q-item-section>
               </q-item>
 
               <q-item clickable v-close-popup @click="$router.push('/alcaldia/solicitudes')">
@@ -64,17 +57,9 @@
         </q-btn>
       </div>
 
-      <div class="header-title">Panel de Gestión</div>
+      <div class="header-title">Panel Administrativo</div>
 
-      <div class="header-right">
-        <q-btn
-          round
-          color="primary"
-          icon="arrow_back"
-          class="mobile-only-btn"
-          @click="$router.push('/')"
-        />
-      </div>
+      <div class="header-right"></div>
     </div>
 
     <!-- Botones de escritorio -->
@@ -178,33 +163,34 @@
 
         <div class="row q-col-gutter-lg">
           <div v-for="item in itemsFiltrados" :key="item._id" class="col-12 col-sm-6 col-md-4">
-            <div class="relative-position">
-              <TarjetaEvento
-                v-if="tipo === 'eventos'"
-                :evento="item"
-                @click="abrirModalEvento(item)"
-              />
+            <div class="relative-position card-clickable">
+              <TarjetaEvento v-if="tipo === 'eventos'" :evento="item" @click="abrirDetalle(item)" />
 
-              <TarjetaSitio v-else :sitio="item" @click="abrirModalSitio(item)" />
+              <TarjetaSitio v-else :sitio="item" @click="abrirDetalle(item)" />
 
-              <div class="absolute-top-right q-pa-sm row q-gutter-xs">
+              <div class="absolute-top-right q-pa-sm row q-gutter-xs action-buttons">
                 <q-btn
-                  round
                   dense
-                  flat
-                  :color="$q.dark.isActive ? 'white' : 'primary'"
-                  icon="edit"
+                  unelevated
+                  class="card-action-btn edit-action"
+                  icon="edit_document"
                   @click.stop="abrirModalEdicion(item)"
-                />
+                >
+                  <q-tooltip>Editar</q-tooltip>
+                </q-btn>
 
                 <q-btn
-                  round
                   dense
-                  flat
-                  :color="item.estado === 'archivado' ? 'positive' : 'negative'"
+                  unelevated
+                  class="card-action-btn archive-action"
+                  :class="item.estado === 'archivado' ? 'restore-action' : ''"
                   :icon="item.estado === 'archivado' ? 'unarchive' : 'archive'"
                   @click.stop="toggleArchivar(item)"
-                />
+                >
+                  <q-tooltip>
+                    {{ item.estado === 'archivado' ? 'Restaurar' : 'Archivar' }}
+                  </q-tooltip>
+                </q-btn>
               </div>
             </div>
           </div>
@@ -305,9 +291,14 @@ const modalCrearOpen = ref(false)
 const tipo = ref(route.query.tipo || 'eventos')
 const filtroEstado = ref(route.query.estado || null)
 
-// Sincronizar cambios de filtros con la URL (sin recargar la página)
+// Sincronizar cambios de filtros con la URL sin recargar la página
 watch([tipo, filtroEstado], ([newTipo, newEstado]) => {
-  router.replace({ query: { tipo: newTipo, estado: newEstado || undefined } })
+  router.replace({
+    query: {
+      tipo: newTipo,
+      estado: newEstado || undefined,
+    },
+  })
 })
 
 const eventos = ref([])
@@ -344,6 +335,13 @@ async function cargarDatos() {
     }
   } catch (e) {
     console.error(e)
+
+    $q.notify({
+      type: 'negative',
+      message: 'No se pudieron cargar los registros.',
+      position: 'top',
+      timeout: 2500,
+    })
   } finally {
     loading.value = false
   }
@@ -360,6 +358,7 @@ function onSaved() {
     position: 'top',
     timeout: 2500,
   })
+
   recargarDatos()
 }
 
@@ -368,11 +367,37 @@ async function toggleArchivar(item) {
 
   try {
     const doc = await couch.get(DB, item._id)
+
     doc.estado = nuevoEstado
+
     await couch.put(DB, doc)
     await cargarDatos()
+
+    $q.notify({
+      type: 'positive',
+      message: nuevoEstado === 'archivado' ? 'Registro archivado.' : 'Registro restaurado.',
+      position: 'top',
+      timeout: 2000,
+    })
   } catch (e) {
     console.error(e)
+
+    $q.notify({
+      type: 'negative',
+      message: 'No se pudo actualizar el estado del registro.',
+      position: 'top',
+      timeout: 2500,
+    })
+  }
+}
+
+function abrirDetalle(item) {
+  if (!item?._id) return
+
+  if (tipo.value === 'eventos') {
+    router.push(`/alcaldia/evento/${item._id}`)
+  } else {
+    router.push(`/alcaldia/sitio/${item._id}`)
   }
 }
 
@@ -491,12 +516,57 @@ onMounted(() => {
   overflow: hidden;
 }
 
+/* Cards clickeables */
+.card-clickable {
+  cursor: pointer;
+}
+
 /* Botones encima de cards */
 .absolute-top-right {
   position: absolute;
   top: 0;
   right: 0;
   z-index: 10;
+}
+
+/* Botones de acción sobre las tarjetas */
+.action-buttons {
+  align-items: center;
+}
+
+.card-action-btn {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  border-radius: 9px;
+  color: white;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.22);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    filter 0.2s ease;
+}
+
+.card-action-btn :deep(.q-icon) {
+  font-size: 19px;
+}
+
+.card-action-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+  box-shadow: 0 7px 16px rgba(0, 0, 0, 0.28);
+}
+
+.edit-action {
+  background: linear-gradient(135deg, #1e88ff, #0052cc);
+}
+
+.archive-action {
+  background: linear-gradient(135deg, #111827, #374151);
+}
+
+.restore-action {
+  background: linear-gradient(135deg, #16a34a, #047857);
 }
 
 /* Modal crear nuevo */

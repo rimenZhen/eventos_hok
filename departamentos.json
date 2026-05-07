@@ -1,0 +1,27 @@
+{
+  "docs": [
+    {
+      "_id": "79bf870b2c756deeff84ab9356000b27",
+      "type": "configuracion",
+      "descripcion": "Catálogo de departamentos",
+      "items": [
+        { "clave": "SAN_SALVADOR", "nombre": "San Salvador", "activo": true },
+        { "clave": "LA_LIBERTAD", "nombre": "La Libertad", "activo": true },
+        { "clave": "SANTA_ANA", "nombre": "Santa Ana", "activo": true },
+        { "clave": "CHALATENANGO", "nombre": "Chalatenango", "activo": true },
+        { "clave": "CABANIAS", "nombre": "Cabañas", "activo": true },
+        { "clave": "USULUTAN", "nombre": "Usulutan", "activo": true },
+        { "clave": "SAN_MIGUEL", "nombre": "San Miguel", "activo": true },
+        { "clave": "SONSONATE", "nombre": "Sonsonate", "activo": true },
+        { "clave": "SAN_VICENTE", "nombre": "San Vicente", "activo": true },
+        { "clave": "LA_UNION", "nombre": "La Union", "activo": true },
+        { "clave": "LA_PAZ", "nombre": "La Paz", "activo": true },
+        { "clave": "MORAZAN", "nombre": "Morazan", "activo": true },
+        { "clave": "CUSCATLAN", "nombre": "Cuscatlan", "activo": true },
+        { "clave": "AHUACHAPAN", "nombre": "Ahuachapan", "activo": true }
+      ],
+      "activo": true,
+      "fecha_actualizacion": "2026-01-01T00:00:00Z"
+    }
+  ]
+}

@@ -76,19 +76,6 @@
 
             <div class="col-12 col-md-6">
               <q-input
-                v-model.trim="form.organizador"
-                label="Organizador *"
-                placeholder="Nombre del responsable"
-                outlined
-                readonly
-                hint="Se toma automáticamente del nombre institucional de la alcaldía"
-                :error="!!errors.organizador"
-                :error-message="errors.organizador"
-              />
-            </div>
-
-            <div class="col-12 col-md-6">
-              <q-input
                 v-model.trim="form.contacto_organizador"
                 label="Contacto"
                 placeholder="Teléfono o email"
@@ -213,93 +200,33 @@
         <section v-if="currentStep === 3" class="step-content">
           <div class="row q-col-gutter-md">
             <div class="col-12">
-              <q-select
-                v-model="form.tipo_ubicacion"
-                :options="opcionesUbicacion"
-                label="¿Cómo definir la ubicación?"
-                outlined
-                emit-value
-                map-options
-                :error="!!errors.ubicacion"
-                :error-message="errors.ubicacion"
-              />
-            </div>
-
-            <div v-if="form.tipo_ubicacion === 'sitio'" class="col-12">
-              <q-select
-                v-model="form.sitio_asociado"
-                :options="sitiosDisponibles"
-                label="Sitio turístico"
-                outlined
-                emit-value
-                map-options
-                option-label="nombre"
-                option-value="_id"
-                clearable
-                :error="!!errors.ubicacion"
-                :error-message="errors.ubicacion"
-              />
-            </div>
-
-            <div v-if="form.tipo_ubicacion === 'coordenadas'" class="col-12">
-              <div class="row q-col-gutter-md">
-                <div class="col-12 col-md-6">
-                  <q-input
-                    v-model.number="form.lat"
-                    label="Latitud"
-                    type="number"
-                    step="any"
-                    outlined
-                  />
-                </div>
-                <div class="col-12 col-md-6">
-                  <q-input
-                    v-model.number="form.lng"
-                    label="Longitud"
-                    type="number"
-                    step="any"
-                    outlined
-                  />
-                </div>
+              <div class="field-label">
+                <q-icon name="map" />
+                Selecciona la ubicación en el mapa *
               </div>
-            </div>
-
-            <div v-if="form.tipo_ubicacion === 'mapa'" class="col-12">
               <MapLocationPicker
                 :latitude="form.lat"
                 :longitude="form.lng"
                 @update:location="actualizarUbicacion"
                 height="300px"
               />
+              <div v-if="errors.ubicacion" class="text-negative text-caption q-mt-xs">
+                {{ errors.ubicacion }}
+              </div>
             </div>
 
-            <div class="col-12 col-md-6">
+            <div class="col-12">
               <q-select
-                v-model="form.departamento"
-                :options="departamentosOptions"
-                label="Departamento *"
+                v-model="form.distrito"
+                :options="distritosOptions"
+                label="Distrito donde será el evento *"
                 outlined
                 emit-value
                 map-options
-                readonly
-                hint="Se asigna automáticamente según la alcaldía"
-                :error="!!errors.departamento"
-                :error-message="errors.departamento"
-              />
-            </div>
-
-            <div class="col-12 col-md-6">
-              <q-select
-                v-model="form.municipio"
-                :options="municipiosOptions"
-                label="Municipio *"
-                outlined
-                emit-value
-                map-options
-                readonly
-                hint="Se asigna automáticamente según la alcaldía"
-                :error="!!errors.municipio"
-                :error-message="errors.municipio"
+                :disable="distritosOptions.length === 0"
+                :error="!!errors.distrito"
+                :error-message="errors.distrito"
+                hint="Solo se muestran los distritos asociados a tu alcaldía"
               />
             </div>
 
@@ -313,22 +240,20 @@
         <section v-if="currentStep === 4" class="step-content">
           <div class="text-h6 q-mb-sm">Resumen del evento</div>
           <q-list dense bordered class="rounded-borders q-mb-md">
-            <q-item
-              ><q-item-section>Evento: {{ form.titulo || '---' }}</q-item-section></q-item
-            >
-            <q-item
-              ><q-item-section>Categoría: {{ categoriaLabel || '---' }}</q-item-section></q-item
-            >
             <q-item>
-              <q-item-section>
-                Fechas: {{ form.fecha_inicio || '---' }} → {{ form.fecha_fin || '---' }}
-              </q-item-section>
+              <q-item-section>Nombre: {{ form.titulo || '---' }}</q-item-section>
             </q-item>
-            <q-item
-              ><q-item-section>Ubicación: {{ resumenUbicacion }}</q-item-section></q-item
-            >
             <q-item>
-              <q-item-section>Costo: {{ Number(form.costo || 0).toFixed(2) }} USD</q-item-section>
+              <q-item-section>Descripción: {{ form.descripcion || '---' }}</q-item-section>
+            </q-item>
+            <q-item>
+              <q-item-section>Precio: {{ Number(form.costo || 0).toFixed(2) }} USD</q-item-section>
+            </q-item>
+            <q-item>
+              <q-item-section>Distrito: {{ distritoSeleccionado?.nombre || '---' }}</q-item-section>
+            </q-item>
+            <q-item>
+              <q-item-section>Dirección detallada: {{ form.direccion || '---' }}</q-item-section>
             </q-item>
           </q-list>
           <div class="text-caption text-grey-7">
@@ -414,65 +339,30 @@ const extrasInput = ref(null)
 const previewPortada = ref(null)
 const previewsExtras = ref([])
 const errors = reactive({})
-const sitiosDisponibles = ref([])
-
-const detalleAlcaldia = computed(() => auth.user?.detalles?.detalle_alcaldia || {})
+const distritosCatalogo = ref([])
 
 const categoriasOptions = computed(() =>
   (configStore.categoriasEventos || []).map((c) => ({ label: c.nombre, value: c.clave })),
 )
 
-const departamentosOptions = computed(() => {
-  const departamentoClave = form.departamento || detalleAlcaldia.value.departamento
-  if (!departamentoClave) return []
+const distritosFuente = computed(() =>
+  (configStore.distritos || []).length > 0 ? configStore.distritos : distritosCatalogo.value,
+)
 
-  const departamento = configStore.departamentos?.find((d) => d.clave === departamentoClave)
+const distritosOptions = computed(() =>
+  (distritosFuente.value || [])
+    .filter((distrito) => distrito.activo !== false && distrito.alcaldia === form.municipio)
+    .map((distrito) => ({ label: distrito.nombre, value: distrito.clave })),
+)
 
-  return [
-    {
-      label: departamento?.nombre || departamentoClave,
-      value: departamentoClave,
-    },
-  ]
-})
-
-const municipiosOptions = computed(() => {
-  const municipioClave = form.municipio || detalleAlcaldia.value.municipio
-  if (!municipioClave) return []
-
-  const alcaldia = configStore.alcaldias?.find((a) => a.clave === municipioClave)
-
-  return [
-    {
-      label: alcaldia?.nombre || municipioClave,
-      value: municipioClave,
-    },
-  ]
-})
-
-const categoriaLabel = computed(() => {
-  return categoriasOptions.value.find((c) => c.value === form.categoria)?.label || form.categoria
-})
-
-const resumenUbicacion = computed(() => {
-  if (form.direccion) return form.direccion
-  if (form.departamento || form.municipio) {
-    const depNombre =
-      departamentosOptions.value.find((d) => d.value === form.departamento)?.label ||
-      form.departamento
-    const munNombre =
-      municipiosOptions.value.find((m) => m.value === form.municipio)?.label || form.municipio
-    return `${munNombre || ''}, ${depNombre}`.trim()
+const distritoSeleccionado = computed(() => {
+  const distrito = (distritosFuente.value || []).find((item) => item.clave === form.distrito)
+  if (!distrito) return null
+  return {
+    clave: distrito.clave,
+    nombre: distrito.nombre,
   }
-  if (form.lat !== null && form.lng !== null) return `${form.lat}, ${form.lng}`
-  return '---'
 })
-
-const opcionesUbicacion = [
-  { label: 'Seleccionar sitio turístico existente', value: 'sitio' },
-  { label: 'Ingresar coordenadas manualmente', value: 'coordenadas' },
-  { label: 'Seleccionar en el mapa', value: 'mapa' },
-]
 
 watch(
   () => dialogVisible.value,
@@ -482,27 +372,40 @@ watch(
   },
 )
 
+async function cargarDistritosFallback() {
+  try {
+    const result = await couch.find(import.meta.env.VITE_DB_DATA, { type: 'configuracion' })
+    const distritosDoc = (result.docs || []).find((doc) => {
+      const descripcion = doc.descripcion?.toLowerCase() || ''
+      return descripcion.includes('distrito') || descripcion.includes('distritos')
+    })
+    distritosCatalogo.value = distritosDoc?.items?.filter((item) => item.activo !== false) || []
+  } catch (error) {
+    console.error(error)
+    distritosCatalogo.value = []
+  }
+}
+
 async function prepararFormulario() {
   limpiarErrores()
   resetForm()
   currentStep.value = 1
 
-  if ((configStore.categoriasEventos || []).length === 0) await configStore.fetchCatalogos()
-  await cargarSitios()
-
-  aplicarDatosAlcaldia()
+  if (
+    (configStore.categoriasEventos || []).length === 0 ||
+    (configStore.distritos || []).length === 0
+  )
+    await configStore.fetchCatalogos()
+  if ((configStore.distritos || []).length === 0) await cargarDistritosFallback()
+  if (!isEdit.value) {
+    const detalle = auth.user?.detalles?.detalle_alcaldia
+    if (detalle?.departamento) form.departamento = detalle.departamento
+    if (detalle?.municipio) form.municipio = detalle.municipio
+    if (detalle?.nombre_institucional) form.organizador = detalle.nombre_institucional
+    if (detalle?.telefono) form.contacto_organizador = detalle.telefono
+  }
 
   if (props.evento) cargarEvento(props.evento)
-  aplicarDatosAlcaldia()
-}
-
-function aplicarDatosAlcaldia() {
-  const detalle = detalleAlcaldia.value
-
-  form.organizador = detalle.nombre_institucional || ''
-  form.contacto_organizador = form.contacto_organizador || detalle.telefono || ''
-  form.departamento = detalle.departamento || ''
-  form.municipio = detalle.municipio || ''
 }
 
 function getEmptyForm() {
@@ -516,12 +419,11 @@ function getEmptyForm() {
     enlace_compra: '',
     fecha_inicio: '',
     fecha_fin: '',
-    tipo_ubicacion: 'mapa',
-    sitio_asociado: null,
     lat: null,
     lng: null,
     departamento: '',
     municipio: '',
+    distrito: null,
     direccion: '',
   }
 }
@@ -538,6 +440,7 @@ function cargarEvento(ev) {
   const dep = typeof ev.departamento === 'object' ? ev.departamento.value : ev.departamento
   const mun =
     typeof ev.municipio === 'object' ? ev.municipio.nombre || ev.municipio.value : ev.municipio
+  const distrito = obtenerClaveDistrito(ev.distrito)
 
   Object.assign(form, {
     titulo: ev.titulo || '',
@@ -549,28 +452,20 @@ function cargarEvento(ev) {
     enlace_compra: ev.enlace_compra || '',
     fecha_inicio: ev.fecha_inicio ? ev.fecha_inicio.slice(0, 16) : '',
     fecha_fin: ev.fecha_fin ? ev.fecha_fin.slice(0, 16) : '',
-    tipo_ubicacion: ev.sitio_asociado ? 'sitio' : 'mapa',
-    sitio_asociado: ev.sitio_asociado || null,
     lat: ev.localizacion?.lat ?? null,
     lng: ev.localizacion?.lng ?? null,
     departamento: dep || '',
     municipio: mun || '',
-    direccion: ev.direccion || '',
+    distrito: distrito || null,
+    direccion: ev.direccion || ev.localizacion?.direccion || '',
   })
   previewPortada.value = ev.imagen_portada || null
 }
 
-async function cargarSitios() {
-  try {
-    const res = await couch.find(import.meta.env.VITE_DB_DATA, {
-      type: 'sitio',
-      'alcaldia._id': auth.user._id,
-    })
-    sitiosDisponibles.value = res.docs || []
-  } catch (e) {
-    console.error(e)
-    sitiosDisponibles.value = []
-  }
+function obtenerClaveDistrito(distrito) {
+  if (!distrito) return null
+  if (typeof distrito === 'string') return distrito
+  return distrito.clave || distrito.value || null
 }
 
 function onPortadaSelected(event) {
@@ -614,7 +509,6 @@ function validarPaso1() {
   if (!form.titulo) errors.titulo = 'El título es obligatorio'
   if (!form.descripcion) errors.descripcion = 'La descripción es obligatoria'
   if (!form.categoria) errors.categoria = 'Selecciona una categoría'
-  if (!form.organizador) errors.organizador = 'El organizador es obligatorio'
   if (!portadaFile.value && !previewPortada.value && !isEdit.value) {
     errors.imagen_portada = 'Debes seleccionar una imagen principal'
   }
@@ -633,13 +527,11 @@ function validarPaso2() {
 }
 
 function validarPaso3() {
-  if (!form.departamento) errors.departamento = 'El departamento es obligatorio'
-  if (!form.municipio) errors.municipio = 'El municipio es obligatorio'
-  if (form.tipo_ubicacion === 'sitio' && !form.sitio_asociado) {
-    errors.ubicacion = 'Selecciona un sitio'
-  }
-  if (form.tipo_ubicacion !== 'sitio' && (form.lat === null || form.lng === null)) {
-    errors.ubicacion = 'Selecciona o ingresa una ubicación'
+  if (!form.departamento) errors.departamento = 'No se pudo obtener el departamento de la alcaldía'
+  if (!form.municipio) errors.municipio = 'No se pudo obtener el municipio de la alcaldía'
+  if (!form.distrito) errors.distrito = 'Selecciona el distrito donde será el evento'
+  if (form.lat === null || form.lng === null) {
+    errors.ubicacion = 'Selecciona una ubicación en el mapa'
   }
 }
 
@@ -679,15 +571,16 @@ async function guardar() {
       descripcion: form.descripcion,
       categoria: form.categoria,
       costo: form.costo || 0,
-      organizador: form.organizador,
+      organizador: auth.user.detalles?.detalle_alcaldia?.nombre_institucional || form.organizador,
       contacto_organizador: form.contacto_organizador,
       enlace_compra: form.enlace_compra,
       fecha_inicio: new Date(form.fecha_inicio).toISOString(),
       fecha_fin: new Date(form.fecha_fin).toISOString(),
       departamento: form.departamento,
       municipio: form.municipio,
+      distrito: distritoSeleccionado.value,
       direccion: form.direccion,
-      localizacion: {},
+      localizacion: { lat: Number(form.lat), lng: Number(form.lng) },
       estado: 'activo', // siempre se publica
       alcaldia: {
         _id: auth.user._id,
@@ -697,19 +590,6 @@ async function guardar() {
       },
       fecha_creacion: props.evento?.fecha_creacion || new Date().toISOString(),
       fecha_actualizacion: new Date().toISOString(),
-    }
-
-    if (form.tipo_ubicacion === 'sitio' && form.sitio_asociado) {
-      const sitio = sitiosDisponibles.value.find((s) => s._id === form.sitio_asociado)
-      if (sitio) {
-        eventoData.sitio_asociado = form.sitio_asociado
-        eventoData.localizacion = sitio.localizacion || {}
-        eventoData.departamento = detalleAlcaldia.value.departamento || form.departamento
-        eventoData.municipio = detalleAlcaldia.value.municipio || form.municipio
-        eventoData.direccion = sitio.direccion || ''
-      }
-    } else {
-      eventoData.localizacion = { lat: form.lat, lng: form.lng }
     }
 
     let idEvento
