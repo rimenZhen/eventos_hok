@@ -6,10 +6,7 @@ const pass = import.meta.env.VITE_COUCHDB_PASS
 const dbImages = import.meta.env.VITE_DB_IMAGES
 const authHeader = 'Basic ' + btoa(`${user}:${pass}`)
 
-function getHeaders(db, method = 'GET') {
-  if (db === dbImages && method === 'GET') {
-    return {}
-  }
+function getHeaders() {
   return {
     Authorization: authHeader,
     'Content-Type': 'application/json'

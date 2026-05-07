@@ -371,7 +371,12 @@
   })
 
   onMounted(async () => {
-    negocio.value = await negocioAPI.getMiNegocio(auth.user._id)
+    try {
+      negocio.value = await negocioAPI.getMiNegocio(auth.user._id)
+    } catch (err) {
+      console.warn('No se pudo cargar negocio para catálogo', err)
+      negocio.value = null
+    }
   })
 
   const currentEditImages = computed(() => {
@@ -444,6 +449,7 @@
   }
 
   function nuevoProducto() {
+    if (!negocio.value?._id) return
     editando.value = null
     Object.assign(prod, { nombre:'', descripcion:'', precio:0, tipo:'', files:[], catalogKey: '' })
     resetImageEditState()
@@ -451,6 +457,7 @@
   }
 
   function editarItem(idx) {
+    if (!negocio.value?.catalogo?.[idx]) return
     const item = negocio.value.catalogo[idx]
     editando.value = idx
     Object.assign(prod, item)
@@ -501,6 +508,11 @@
   }
 
   async function guardarProducto() {
+    if (!negocio.value?._id || !negocio.value?._rev) {
+      console.warn('Guardar cancelado: no hay negocio cargado')
+      return
+    }
+
     const isEditing = editando.value !== null
     const existingItem = isEditing && negocio.value?.catalogo?.[editando.value]
       ? negocio.value.catalogo[editando.value]
@@ -580,34 +592,48 @@
       nuevoItem.imagen = baseImages[0] || ''
     }
 
-    if (isEditing) {
-      await negocioAPI.updateProducto(
-        negocio.value._id,
-        negocio.value._rev,
-        editando.value,
-        nuevoItem
-      )
-    } else {
-      await negocioAPI.addProducto(
-        negocio.value._id,
-        negocio.value._rev,
-        nuevoItem
-      )
-    }
+    try {
+      if (isEditing) {
+        await negocioAPI.updateProducto(
+          negocio.value._id,
+          negocio.value._rev,
+          editando.value,
+          nuevoItem
+        )
+      } else {
+        await negocioAPI.addProducto(
+          negocio.value._id,
+          negocio.value._rev,
+          nuevoItem
+        )
+      }
 
-    negocio.value = await negocioAPI.getMiNegocio(auth.user._id)
-    dialogo.value = false
-    resetDialog()
+      negocio.value = await negocioAPI.getMiNegocio(auth.user._id)
+      dialogo.value = false
+      resetDialog()
+    } catch (err) {
+      console.error('Error guardando producto:', err)
+    }
   }
 
   async function eliminarItem() {
-    await negocioAPI.deleteProducto(
-      negocio.value._id,
-      negocio.value._rev,
-      idxAEliminar.value
-    )
-    negocio.value = await negocioAPI.getMiNegocio(auth.user._id)
-    confirmaEliminar.value = false
+    if (!negocio.value?._id || !negocio.value?._rev) {
+      confirmaEliminar.value = false
+      return
+    }
+
+    try {
+      await negocioAPI.deleteProducto(
+        negocio.value._id,
+        negocio.value._rev,
+        idxAEliminar.value
+      )
+      negocio.value = await negocioAPI.getMiNegocio(auth.user._id)
+    } catch (err) {
+      console.error('Error eliminando producto:', err)
+    } finally {
+      confirmaEliminar.value = false
+    }
   }
 </script>
 
