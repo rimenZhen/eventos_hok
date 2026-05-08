@@ -102,17 +102,14 @@ import { useRouter } from 'vue-router'
 import { useConfiguracionStore } from 'src/stores/configuracion'
 import { negocioAPI } from 'src/api/negocio'
 import { usuariosAPI } from 'src/api/usuarios'
-import { couch } from 'src/api/index'
 import PerfilNegocio from 'src/components/negocio/PerfilNegocio.vue'
 import HorarioSemanal from 'src/components/HorarioSemanal.vue'
 
-const DB = import.meta.env.VITE_DB_DATA
 
 const auth = useAuthStore()
 const router = useRouter()
 const configStore = useConfiguracionStore()
 const negocio = ref(null)
-const usuarioDoc = ref(null)
 const loading = ref(true)
 const showHorario = ref(false)
 const sending = ref(false)
@@ -127,23 +124,21 @@ const getValue = (val) => {
 
 // Obtener nombres a partir de las claves
 const departamento = computed(() => {
-  const clave = getValue(negocio.value?.departamento) || getValue(usuarioDoc.value?.detalles?.detalle_negocio?.departamento)
+  const clave = getValue(negocio.value?.departamento)
   return configStore.getDepartamentoNombre(clave)
 })
 
 const distrito = computed(() => {
-  const clave = getValue(negocio.value?.distrito) || getValue(negocio.value?.municipio) || getValue(usuarioDoc.value?.detalles?.detalle_negocio?.distrito) || getValue(usuarioDoc.value?.detalles?.detalle_negocio?.municipio)
+  const clave = getValue(negocio.value?.distrito) || getValue(negocio.value?.municipio)
   return configStore.getDistritoNombre(clave)
 })
 
 const estadoSolicitud = computed(() => {
-  return negocio.value?.estado_solicitud || usuarioDoc.value?.detalles?.detalle_negocio?.estado_solicitud || 'sin_solicitud'
+  return negocio.value?.estado_solicitud || 'sin_solicitud'
 })
 
 const negocioData = computed(() => {
-  if (negocio.value) return negocio.value
-  if (usuarioDoc.value?.detalles?.detalle_negocio) return usuarioDoc.value.detalles.detalle_negocio
-  return null
+  return negocio.value
 })
 
 const canSendApproval = computed(() => {
@@ -151,8 +146,7 @@ const canSendApproval = computed(() => {
 })
 
 const bottonLabel = computed(() => {
-  const fueRechazado = usuarioDoc.value?.detalles?.detalle_negocio?.fue_rechazado ||
-                       negocio.value?.fue_rechazado || false
+  const fueRechazado = negocio.value?.fue_rechazado || false
   return fueRechazado ? 'Apelar solicitud' : 'Enviar solicitud a la alcaldía'
 })
 
@@ -163,6 +157,7 @@ const handleSendApproval = async () => {
   if (!canSendApproval.value) return
   sending.value = true
   try {
+    // Enviar solicitud usando el userId del propietario
     await usuariosAPI.submitNegocioApprovalRequest(auth.user._id)
     successMessage.value = 'Solicitud de aprobación enviada a la alcaldía'
     setTimeout(() => { successMessage.value = '' }, 3000)
@@ -176,14 +171,10 @@ const handleSendApproval = async () => {
 
 const cargarDatos = async () => {
   try {
-    usuarioDoc.value = await couch.get(DB, auth.user._id)
-    try {
-      negocio.value = await negocioAPI.getMiNegocio(auth.user._id)
-    } catch {
-      negocio.value = null
-    }
+    negocio.value = await negocioAPI.getMiNegocio(auth.user._id)
   } catch (e) {
-    console.error('Error al cargar datos:', e)
+    console.error('Error al cargar negocio:', e)
+    negocio.value = null
   }
 }
 

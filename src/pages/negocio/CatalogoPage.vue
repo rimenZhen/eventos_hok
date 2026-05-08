@@ -4,7 +4,7 @@
     <div v-if="negocio" class="row q-col-gutter-sm">
       <div v-for="(item, idx) in negocio.catalogo" :key="idx" class="col-12 col-sm-6 col-md-4">
         <q-card>
-          <q-img :src="getImagenProducto(item.imagen)" :ratio="1" />
+          <q-img :src="getImagenProducto(item.imagenes?.[0] || item.imagen)" :ratio="1" />
           <q-card-section>
             <div class="text-subtitle2">{{ item.nombre }}</div>
             <div class="text-caption">{{ item.descripcion }}</div>
@@ -41,7 +41,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch, onBeforeUnmount } from 'vue'
 import { useAuthStore } from 'src/stores/auth'
 import { negocioAPI } from 'src/api/negocio'
 import { couch } from 'src/api/index'
@@ -50,6 +50,8 @@ const auth = useAuthStore()
 const negocio = ref(null)
 const dialogo = ref(false)
 const editando = ref(null)
+const imageSources = reactive({})
+const placeholderImage = 'https://via.placeholder.com/200'
 const prod = reactive({
   nombre: '',
   descripcion: '',
@@ -65,9 +67,52 @@ onMounted(async () => {
   }
 })
 
+watch(
+  () => negocio.value?.catalogo,
+  () => { precargarImagenesCatalogo() },
+  { deep: true, immediate: true }
+)
+
+onBeforeUnmount(() => {
+  Object.values(imageSources).forEach(src => {
+    if (typeof src === 'string' && src.startsWith('blob:')) URL.revokeObjectURL(src)
+  })
+})
+
 function getImagenProducto(nombreArchivo) {
-  if (!nombreArchivo) return 'https://via.placeholder.com/200'
-  return couch.getImageUrl('neg_' + negocio.value._id, nombreArchivo)
+  if (!nombreArchivo) return placeholderImage
+  const key = `neg_${negocio.value?._id || ''}/${nombreArchivo}`
+  return imageSources[key] || placeholderImage
+}
+
+async function cargarImagenProducto(nombreArchivo) {
+  if (!nombreArchivo || !negocio.value?._id) return
+  const key = `neg_${negocio.value._id}/${nombreArchivo}`
+  if (imageSources[key] && !imageSources[key].startsWith('blob:')) return
+
+  try {
+    const blob = await couch.fetchImageBlob(`neg_${negocio.value._id}`, nombreArchivo)
+    const objectUrl = URL.createObjectURL(blob)
+    const previous = imageSources[key]
+    if (previous?.startsWith('blob:')) URL.revokeObjectURL(previous)
+    imageSources[key] = objectUrl
+  } catch {
+    imageSources[key] = placeholderImage
+  }
+}
+
+async function precargarImagenesCatalogo() {
+  if (!negocio.value?._id) return
+  const archivos = new Set()
+
+  for (const item of negocio.value.catalogo || []) {
+    const nombres = item.imagenes?.length ? item.imagenes : item.imagen ? [item.imagen] : []
+    for (const nombre of nombres) {
+      if (nombre) archivos.add(nombre)
+    }
+  }
+
+  await Promise.all([...archivos].map(nombre => cargarImagenProducto(nombre)))
 }
 
 function nuevoProducto() {
@@ -97,7 +142,7 @@ async function guardarProducto() {
       nombre: prod.nombre,
       descripcion: prod.descripcion,
       precio: prod.precio,
-      imagen: ''
+      imagenes: []
     }
 
     // Si hay archivo, lo subimos primero (usando un nombre único)
@@ -108,7 +153,7 @@ async function guardarProducto() {
       catch { imgDoc = await couch.createImageDoc(imgDocId, 'negocio', negocio.value._id) }
       // Subimos con nombre original o genérico
       await couch.uploadImage(imgDocId, imgDoc._rev, prod.file)
-      nuevoItem.imagen = prod.file.name
+      nuevoItem.imagenes = [prod.file.name]
       // Actualizamos rev del imgDoc para siguientes subidas (si hace falta)
     }
 

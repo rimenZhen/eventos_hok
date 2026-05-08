@@ -27,7 +27,7 @@ const columns = computed(() => [
   {
     name: 'municipio',
     label: 'Municipio',
-    field: row => configStore.getDistritoNombre(row.municipio) // row.municipio guarda la clave del distrito
+    field: row => configStore.getDistritoNombre(row.distrito || row.municipio)
   },
   { name: 'acciones', label: 'Acciones', align: 'center' }
 ])
@@ -43,8 +43,9 @@ onMounted(async () => {
     // 2. Obtener todos los negocios activos (la API actual no filtra)
     const todos = await alcaldiaAPI.getNegociosActivos()
 
-    // 3. Clave de la alcaldía actual
-    const miAlcaldia = auth.user.detalles?.detalle_alcaldia?.municipio
+    // 3. Identidad de la alcaldía actual
+    const miAlcaldiaId = auth.user._id
+    const miAlcaldiaNombre = auth.user.detalles?.detalle_alcaldia?.nombre_institucional || ''
 
     // 4. Construir mapa distrito -> alcaldia
     const distritoAlcaldiaMap = new Map()
@@ -52,15 +53,19 @@ onMounted(async () => {
       if (d.alcaldia) distritoAlcaldiaMap.set(d.clave, d.alcaldia)
     })
 
+    const normalize = value => String(value || '').trim().toLowerCase()
+
     // 5. Filtrar solo los que pertenecen a mi alcaldía
-    if (miAlcaldia) {
-      negocios.value = todos.filter(neg => {
-        const distritoClave = neg.municipio // asumimos que es la clave del distrito
-        return distritoClave && distritoAlcaldiaMap.get(distritoClave) === miAlcaldia
-      })
-    } else {
-      negocios.value = []
-    }
+    negocios.value = todos.filter(neg => {
+      const aprobadoraId = neg.alcaldia_aprobadora?._id
+      if (aprobadoraId) return aprobadoraId === miAlcaldiaId
+
+      const aprobadoraNombre = neg.alcaldia_aprobadora?.nombre_institucional || ''
+      if (aprobadoraNombre) return normalize(aprobadoraNombre) === normalize(miAlcaldiaNombre)
+
+      const distritoClave = neg.distrito || neg.municipio
+      return distritoClave && distritoAlcaldiaMap.get(distritoClave) === auth.user.detalles?.detalle_alcaldia?.municipio
+    })
   } catch (e) {
     console.error('Error cargando administración de negocios:', e)
     negocios.value = []

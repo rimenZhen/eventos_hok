@@ -28,11 +28,11 @@ const getNombreDepartamento = (valor) => configStore.getDepartamentoNombre(valor
 const getNombreDistrito = (valor) => configStore.getDistritoNombre(valor)
 
 const columns = [
-  { name: 'nombre', label: 'Nombre', field: row => row.nombres + ' ' + row.apellidos, align: 'left' },
-  { name: 'comercial', label: 'Comercial', field: row => row.detalles?.detalle_negocio?.nombre_comercial },
-  { name: 'departamento', label: 'Departamento', field: row => getNombreDepartamento(row.detalles?.detalle_negocio?.departamento) },
-  { name: 'distrito', label: 'Distrito', field: row => getNombreDistrito(row.detalles?.detalle_negocio?.distrito) },
-  { name: 'estado', label: 'Estado', field: row => row.detalles?.detalle_negocio?.estado_solicitud },
+  { name: 'nombre', label: 'Propietario', field: row => (row.usuario_propietario?.nombres || '') + ' ' + (row.usuario_propietario?.apellidos || ''), align: 'left' },
+  { name: 'comercial', label: 'Comercial', field: row => row.nombre_comercial },
+  { name: 'departamento', label: 'Departamento', field: row => getNombreDepartamento(row.departamento) },
+  { name: 'distrito', label: 'Distrito', field: row => getNombreDistrito(row.distrito) },
+  { name: 'estado', label: 'Estado', field: row => row.estado_solicitud },
   { name: 'acciones', label: 'Acciones', align: 'center' }
 ]
 
@@ -42,25 +42,22 @@ onMounted(async () => {
     await configStore.fetchCatalogos()
   }
 
-  const miAlcaldia = auth.user.detalles?.detalle_alcaldia?.municipio
+  const miAlcaldiaId = auth.user._id
+  const miAlcaldiaNombre = auth.user.detalles?.detalle_alcaldia?.nombre_institucional || ''
 
-  // Obtener todas las solicitudes (ajusta la API si es necesario para que devuelva todas)
-  const todas = await alcaldiaAPI.getSolicitudesNegocios() // sin filtro
+  // Obtener todas las solicitudes desde BD de negocios
+  const todas = await alcaldiaAPI.getSolicitudesNegocios()
 
-  // Mapa distrito -> alcaldia (los 44)
-  const distritoAlcaldiaMap = new Map()
-  configStore.distritos.forEach(d => {
-    if (d.alcaldia) distritoAlcaldiaMap.set(d.clave, d.alcaldia)
+  const normalize = value => String(value || '').trim().toLowerCase()
+  solicitudes.value = todas.filter(sol => {
+    const destinoId = sol.alcaldia_destino?._id || sol.alcaldia_aprobadora?._id
+    if (destinoId) return destinoId === miAlcaldiaId
+
+    const destinoNombre = sol.alcaldia_destino?.nombre_institucional || sol.alcaldia_aprobadora?.nombre_institucional || ''
+    if (destinoNombre) return normalize(destinoNombre) === normalize(miAlcaldiaNombre)
+
+    return false
   })
-
-  if (miAlcaldia) {
-    solicitudes.value = todas.filter(sol => {
-      const distritoNegocio = sol.detalles?.detalle_negocio?.distrito
-      return distritoNegocio && distritoAlcaldiaMap.get(distritoNegocio) === miAlcaldia
-    })
-  } else {
-    solicitudes.value = []
-  }
 
   loading.value = false
 })
@@ -72,6 +69,7 @@ async function cambiarEstado(row, nuevoEstado) {
     departamento: auth.user.detalles?.detalle_alcaldia?.departamento || '',
     municipio: auth.user.detalles?.detalle_alcaldia?.municipio || ''
   }
+  // row es el negocio document, row._id es el negocioId
   await alcaldiaAPI.cambiarEstadoSolicitud(row._id, nuevoEstado, alcaldiaData)
   solicitudes.value = solicitudes.value.filter(s => s._id !== row._id)
 }

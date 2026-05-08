@@ -48,19 +48,19 @@
           </div>
         </div>
         <div class="stat-item">
-          <div class="label">Promedio por Día</div>
+          <div class="label">Promedio por {{ periodUnitLabel }}</div>
           <div class="value">{{ promedioDia }}</div>
           <div class="change">Período {{ selectedPeriodLabel }}</div>
         </div>
         <div class="stat-item">
-          <div class="label">Máximo en un Día</div>
+          <div class="label">Máximo por {{ periodUnitLabel }}</div>
           <div class="value">{{ maxDia }}</div>
-          <div class="change">Pico más alto</div>
+          <div class="change">Registro más alto del periodo</div>
         </div>
         <div class="stat-item">
-          <div class="label">Mínimo en un Día</div>
+          <div class="label">Mínimo por {{ periodUnitLabel }}</div>
           <div class="value">{{ minDia }}</div>
-          <div class="change">Pico más bajo</div>
+          <div class="change">Registro más bajo del periodo</div>
         </div>
       </div>
     </div>
@@ -93,10 +93,10 @@
 
         <div v-if="topCatalogo.length === 0" class="text-grey q-mt-md">No hay datos de interacción aún.</div>
 
-        <div v-for="entry in topCatalogo" :key="entry.index" class="stat-row q-pa-sm q-mb-sm">
+        <div v-for="entry in topCatalogo" :key="entry.key || entry.index" class="stat-row q-pa-sm q-mb-sm">
           <div class="row items-center justify-between">
             <div>
-              <div class="text-subtitle2 text-weight-bold">{{ entry.nombre || ('Producto ' + entry.index) }}</div>
+              <div class="text-subtitle2 text-weight-bold">{{ entry.nombre || ('Producto ' + (entry.key || entry.index)) }}</div>
               <div class="text-caption text-grey">Clicks totales: {{ entry.count }}</div>
             </div>
             <div class="text-caption text-grey">Último: {{ entry.last ? formatDate(entry.last) : '—' }}</div>
@@ -156,8 +156,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { Chart, registerables } from 'chart.js'
+import { negocioAPI } from 'src/api/negocio'
 
 defineOptions({ name: 'NegocioEstadisticas' })
 
@@ -169,14 +170,16 @@ const tab = ref('perfil')
 const selectedPeriod = ref('30')
 const chartCanvas = ref(null)
 const catalogChartCanvas = ref(null)
+const analytics = ref({ profile: null, catalogo: [] })
+const previousProfile = ref(null)
 let chartInstance = null
 let catalogChartInstance = null
 
 const periods = [
   { label: '7 días', value: '7' },
   { label: '30 días', value: '30' },
-  { label: '90 días', value: '90' },
-  { label: 'Año', value: 'year' }
+  { label: 'Semanas del año', value: 'weeks' },
+  { label: 'Últimos 10 años', value: '10y' }
 ]
 
 const selectedPeriodLabel = computed(() => {
@@ -184,72 +187,255 @@ const selectedPeriodLabel = computed(() => {
   return found?.label || ''
 })
 
-function getCatalogItemByKey(key) {
-  if (!props.negocio?.catalogo?.length) return null
+function periodToDays(period) {
+  if (period === '7') return 7
+  if (period === '30') return 30
+  return 30
+}
+
+function pad2(value) {
+  return String(value).padStart(2, '0')
+}
+
+function getIsoWeekInfo(date) {
+  const utcDate = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
+  const dayNumber = utcDate.getUTCDay() || 7
+  utcDate.setUTCDate(utcDate.getUTCDate() + 4 - dayNumber)
+  const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1))
+  const week = Math.ceil((((utcDate - yearStart) / 86400000) + 1) / 7)
+  return { year: utcDate.getUTCFullYear(), week }
+}
+
+function getWeeksInIsoYear(year) {
+  return getIsoWeekInfo(new Date(Date.UTC(year, 11, 28))).week
+}
+
+function getPeriodUnitLabel(period) {
+  if (period === 'weeks') return 'Semana'
+  if (period === '10y') return 'Año'
+  return 'Día'
+}
+
+function buildWeeklyProfileSummary(yearSummary, referenceDate = new Date()) {
+  const weekInfo = getIsoWeekInfo(referenceDate)
+  const totalWeeks = getWeeksInIsoYear(weekInfo.year)
+  const weeklyMap = {}
+
+  for (const doc of yearSummary?.docs || []) {
+    for (const [weekKey, value] of Object.entries(doc.weekly || {})) {
+      weeklyMap[weekKey] = Number(weeklyMap[weekKey] || 0) + Number(value || 0)
+    }
+  }
+
+  const labels = []
+  const data = []
+  for (let week = 1; week <= Math.min(weekInfo.week, totalWeeks); week += 1) {
+    const weekKey = `${weekInfo.year}-W${pad2(week)}`
+    labels.push(`Sem ${week}`)
+    data.push(Number(weeklyMap[weekKey] || 0))
+  }
+
+  const total = data.reduce((sum, value) => sum + value, 0)
+  return {
+    period: 'weeks',
+    timeline: { labels, data },
+    total,
+    monthTotal: total,
+    weekTotal: total,
+    quarterTotal: total,
+    yearTotal: total,
+    updatedAt: yearSummary?.updatedAt || null,
+    docs: yearSummary?.docs || []
+  }
+}
+
+async function buildLast10YearsSeries(entityId, now = new Date()) {
+  const currentYear = now.getUTCFullYear()
+  const years = []
+  for (let year = currentYear - 9; year <= currentYear; year += 1) {
+    years.push(year)
+  }
+
+  const summaries = await Promise.all(years.map(async year => {
+    try {
+      const endOfYear = year === currentYear
+        ? now
+        : new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999))
+      const summary = await negocioAPI.getBusinessMetricsSummary(entityId, { period: 'year', now: endOfYear })
+      return Number(summary?.yearTotal ?? summary?.total ?? 0)
+    } catch {
+      return 0
+    }
+  }))
+
+  const total = summaries.reduce((sum, value) => sum + value, 0)
+  return {
+    period: '10y',
+    timeline: {
+      labels: years.map(String),
+      data: summaries
+    },
+    total,
+    monthTotal: total,
+    weekTotal: total,
+    quarterTotal: total,
+    yearTotal: summaries.at(-1) || 0,
+    updatedAt: null,
+    docs: []
+  }
+}
+
+function buildLegacyCatalogSummary(catalogoClicks = {}, catalogo = [], period = '30', referenceDate = new Date()) {
+  const days = periodToDays(period)
+  const now = new Date(referenceDate)
+  return Object.keys(catalogoClicks)
+    .map(key => {
+      const records = Array.isArray(catalogoClicks[key]) ? catalogoClicks[key] : []
+      const filtered = records.filter(record => {
+        const rawDate = record?.at || record?.fecha || record?.date
+        const date = rawDate ? new Date(rawDate) : null
+        if (!date || Number.isNaN(date.getTime())) return false
+        return (now - date) / (1000 * 60 * 60 * 24) <= days
+      })
+
+      const dates = filtered.map(record => record?.at || record?.fecha).filter(Boolean).sort()
+      const catalogItem = getCatalogItemByKey(key, catalogo)
+      return {
+        key: String(key),
+        index: Number.parseInt(key, 10),
+        nombre: catalogItem?.nombre || `Producto ${key}`,
+        count: filtered.length,
+        last: dates.length ? dates[dates.length - 1] : null
+      }
+    })
+    .filter(entry => entry.count > 0)
+    .sort((a, b) => b.count - a.count)
+}
+
+function getCatalogItemByKey(key, catalogo = props.negocio?.catalogo || []) {
+  if (!catalogo.length) return null
 
   const stringKey = String(key)
-  const byCatalogKey = props.negocio.catalogo.find(producto => String(producto?.catalogKey) === stringKey)
+  const byCatalogKey = catalogo.find(producto => String(producto?.catalogKey) === stringKey)
   if (byCatalogKey) return byCatalogKey
 
   const index = Number.parseInt(stringKey, 10)
-  if (Number.isInteger(index) && index >= 0 && index < props.negocio.catalogo.length) {
-    return props.negocio.catalogo[index]
+  if (Number.isInteger(index) && index >= 0 && index < catalogo.length) {
+    return catalogo[index]
   }
 
   return null
 }
 
-// Procesa datos de visitas según el período seleccionado
-const visitasData = computed(() => {
-  if (!props.negocio?.estadisticas?.profileViews) return { labels: [], data: [] }
-
-  const views = props.negocio.estadisticas.profileViews || []
-  const now = new Date()
-  let days = 30
-
-  if (selectedPeriod.value === '7') days = 7
-  else if (selectedPeriod.value === '30') days = 30
-  else if (selectedPeriod.value === '90') days = 90
-  else if (selectedPeriod.value === 'year') days = 365
-
-  // Crear array de dias
-  const dateMap = {}
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(now)
-    d.setDate(d.getDate() - i)
-    const key = d.toISOString().split('T')[0]
-    dateMap[key] = 0
+async function cargarAnaliticas() {
+  if (!props.negocio?._id) {
+    analytics.value = { profile: null, catalogo: [] }
+    previousProfile.value = null
+    return
   }
 
-  // Contar visitas por día
-  views.forEach(view => {
-    const key = view.at.split('T')[0]
-    if (key in dateMap) dateMap[key]++
-  })
+  try {
+    const negocioId = props.negocio._id
+    const catalogPeriod = selectedPeriod.value === 'weeks' || selectedPeriod.value === '10y'
+      ? '30'
+      : selectedPeriod.value
 
-  // Formatear para gráfico
-  const labels = Object.keys(dateMap).map(k => {
-    const d = new Date(k)
-    if (days === 7) return d.toLocaleDateString('es-SV', { weekday: 'short' })
-    if (days === 30) return d.toLocaleDateString('es-SV', { month: 'short', day: 'numeric' })
-    if (days === 90) return d.toLocaleDateString('es-SV', { month: 'short', day: 'numeric' })
-    return d.toLocaleDateString('es-SV', { month: 'short' })
-  })
+    let profileSummary = null
+    let previousSummary = null
 
-  const data = Object.values(dateMap)
+    if (selectedPeriod.value === '7' || selectedPeriod.value === '30') {
+      const days = periodToDays(selectedPeriod.value)
+      const previousEnd = new Date()
+      previousEnd.setUTCDate(previousEnd.getUTCDate() - days)
 
-  return { labels, data }
-})
+      const [currentSummary, prevSummary, catalogoSummary] = await Promise.all([
+        negocioAPI.getBusinessMetricsSummary(negocioId, { period: selectedPeriod.value }),
+        negocioAPI.getBusinessMetricsSummary(negocioId, { period: selectedPeriod.value, now: previousEnd }),
+        negocioAPI.getCatalogMetricsSummary(negocioId, props.negocio.catalogo || [], { period: catalogPeriod })
+      ])
+
+      profileSummary = currentSummary
+      previousSummary = prevSummary
+      analytics.value = {
+        profile: profileSummary,
+        catalogo: catalogoSummary.length > 0
+          ? catalogoSummary
+          : buildLegacyCatalogSummary(props.negocio?.estadisticas?.catalogoClicks || {}, props.negocio.catalogo || [], catalogPeriod)
+      }
+    } else if (selectedPeriod.value === 'weeks') {
+      const currentDate = new Date()
+      const previousDate = new Date(currentDate)
+      previousDate.setUTCFullYear(previousDate.getUTCFullYear() - 1)
+
+      const [currentYearSummary, previousYearSummary, catalogoSummary] = await Promise.all([
+        negocioAPI.getBusinessMetricsSummary(negocioId, { period: 'year' }),
+        negocioAPI.getBusinessMetricsSummary(negocioId, { period: 'year', now: previousDate }),
+        negocioAPI.getCatalogMetricsSummary(negocioId, props.negocio.catalogo || [], { period: catalogPeriod })
+      ])
+
+      profileSummary = buildWeeklyProfileSummary(currentYearSummary, currentDate)
+      previousSummary = buildWeeklyProfileSummary(previousYearSummary, previousDate)
+      analytics.value = {
+        profile: profileSummary,
+        catalogo: catalogoSummary.length > 0
+          ? catalogoSummary
+          : buildLegacyCatalogSummary(props.negocio?.estadisticas?.catalogoClicks || {}, props.negocio.catalogo || [], catalogPeriod)
+      }
+    } else {
+      const currentDate = new Date()
+      const previousDate = new Date(currentDate)
+      previousDate.setUTCFullYear(previousDate.getUTCFullYear() - 1)
+
+      const [profileYearSeries, previousYearSummary, catalogoSummary] = await Promise.all([
+        buildLast10YearsSeries(negocioId, currentDate),
+        negocioAPI.getBusinessMetricsSummary(negocioId, { period: 'year', now: previousDate }),
+        negocioAPI.getCatalogMetricsSummary(negocioId, props.negocio.catalogo || [], { period: catalogPeriod })
+      ])
+
+      profileSummary = profileYearSeries
+      previousSummary = {
+        total: Number(previousYearSummary?.yearTotal ?? previousYearSummary?.total ?? 0)
+      }
+      analytics.value = {
+        profile: profileSummary,
+        catalogo: catalogoSummary.length > 0
+          ? catalogoSummary
+          : buildLegacyCatalogSummary(props.negocio?.estadisticas?.catalogoClicks || {}, props.negocio.catalogo || [], catalogPeriod)
+      }
+    }
+
+    previousProfile.value = previousSummary
+  } catch (error) {
+    console.warn('No se pudieron cargar las métricas agregadas', error)
+    analytics.value = {
+      profile: selectedPeriod.value === 'weeks'
+        ? buildWeeklyProfileSummary({ docs: [] }, new Date())
+        : selectedPeriod.value === '10y'
+          ? await buildLast10YearsSeries(props.negocio._id)
+          : { period: selectedPeriod.value, timeline: { labels: [], data: [] }, total: 0, docs: [] },
+      catalogo: buildLegacyCatalogSummary(props.negocio?.estadisticas?.catalogoClicks || {}, props.negocio.catalogo || [], selectedPeriod.value)
+    }
+    previousProfile.value = { total: 0 }
+  }
+
+  await nextTick()
+  renderChart()
+  renderCatalogChart()
+}
+
+const visitasData = computed(() => analytics.value.profile?.timeline || { labels: [], data: [] })
 
 // Estadísticas calculadas
 const totalVisitas = computed(() => {
-  return props.negocio?.estadisticas?.profileViews?.length || 0
+  return analytics.value.profile?.total || 0
 })
 
+const periodUnitLabel = computed(() => getPeriodUnitLabel(selectedPeriod.value))
+
 const promedioDia = computed(() => {
-  if (totalVisitas.value === 0) return 0
-  const days = selectedPeriod.value === '7' ? 7 : selectedPeriod.value === '30' ? 30 : selectedPeriod.value === '90' ? 90 : 365
-  return (totalVisitas.value / days).toFixed(1)
+  const values = visitasData.value.data || []
+  if (values.length === 0) return 0
+  return (totalVisitas.value / values.length).toFixed(1)
 })
 
 const maxDia = computed(() => {
@@ -261,82 +447,21 @@ const minDia = computed(() => {
 })
 
 const changePercent = computed(() => {
-  // Comparar con período anterior
-  if (!props.negocio?.estadisticas?.profileViews) return 0
-  const views = props.negocio.estadisticas.profileViews
-  const now = new Date()
-  let days = 30
+  if (selectedPeriod.value === '10y') return 0
+  const currentCount = analytics.value.profile?.total || 0
+  const previousCount = previousProfile.value?.total || 0
 
-  if (selectedPeriod.value === '7') days = 7
-  else if (selectedPeriod.value === '30') days = 30
-  else if (selectedPeriod.value === '90') days = 90
-  else if (selectedPeriod.value === 'year') days = 365
-
-  // Visitas en periodo actual
-  const currentCount = views.filter(v => {
-    const vDate = new Date(v.at)
-    return (now - vDate) / (1000 * 60 * 60 * 24) <= days
-  }).length
-
-  // Visitas en período anterior
-  const prevDate = new Date(now)
-  prevDate.setDate(prevDate.getDate() - days)
-  const prevCount = views.filter(v => {
-    const vDate = new Date(v.at)
-    return vDate < prevDate
-  }).length
-
-  if (prevCount === 0) return currentCount > 0 ? 100 : 0
-  return ((currentCount - prevCount) / prevCount * 100).toFixed(1)
+  if (previousCount === 0) return currentCount > 0 ? 100 : 0
+  return ((currentCount - previousCount) / previousCount * 100).toFixed(1)
 })
 
 // Top de catálogs más clickeados
 const topCatalogo = computed(() => {
-  if (!props.negocio) return []
-  const clicks = (props.negocio.estadisticas && props.negocio.estadisticas.catalogoClicks) || {}
-  const result = Object.keys(clicks).map(key => {
-    const arr = clicks[key] || []
-    const dates = arr.map(r => r.at).filter(Boolean).sort()
-    const item = getCatalogItemByKey(key)
-    return {
-      key,
-      count: arr.length,
-      last: dates.length ? dates[dates.length - 1] : null,
-      nombre: item?.nombre || `Producto ${key}`
-    }
-  })
-  return result.filter(Boolean).sort((a, b) => b.count - a.count)
+  return analytics.value.catalogo || []
 })
 
 const catalogoChartData = computed(() => {
-  if (!props.negocio) return { labels: [], data: [] }
-
-  const clicks = props.negocio.estadisticas?.catalogoClicks || {}
-  const now = new Date()
-  let days = 30
-
-  if (selectedPeriod.value === '7') days = 7
-  else if (selectedPeriod.value === '30') days = 30
-  else if (selectedPeriod.value === '90') days = 90
-  else if (selectedPeriod.value === 'year') days = 365
-
-  const items = Object.keys(clicks)
-    .map(key => {
-      const registros = clicks[key] || []
-      const filtrados = registros.filter(registro => {
-        const fecha = new Date(registro.at)
-        return (now - fecha) / (1000 * 60 * 60 * 24) <= days
-      })
-
-      const producto = getCatalogItemByKey(key)
-      return {
-        nombre: producto?.nombre || `Producto ${key}`,
-        count: filtrados.length
-      }
-    })
-    .filter(item => item && item.count > 0)
-    .sort((a, b) => b.count - a.count)
-
+  const items = topCatalogo.value || []
   return {
     labels: items.map(item => item.nombre),
     data: items.map(item => item.count)
@@ -490,18 +615,12 @@ function renderCatalogChart() {
 }
 
 watch([() => props.negocio, selectedPeriod], () => {
-  renderChart()
-  renderCatalogChart()
-}, { deep: true })
+  cargarAnaliticas()
+}, { deep: true, immediate: true })
 
 watch(tab, async value => {
   if (value !== 'catalogo') return
   await nextTick()
-  renderCatalogChart()
-})
-
-onMounted(() => {
-  renderChart()
   renderCatalogChart()
 })
 </script>

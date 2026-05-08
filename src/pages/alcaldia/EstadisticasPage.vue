@@ -32,7 +32,6 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-// import { couch } from 'src/api/index'
 
 // Cambia a false cuando tengas conexión real a la base de datos
 const demoMode = ref(true)
@@ -51,16 +50,17 @@ const stats = ref([
 const fetchStatistics = async () => {
   loadingStats.value = true
   try {
-    const db = import.meta.env.VITE_DB_DATA
+    const dbUsers = import.meta.env.VITE_DB_DATA
+    const dbNegocios = import.meta.env.VITE_DB_NEGOCIOS || import.meta.env.VITE_DB_DATA
 
-    const eventos = await couch.find(db, { type: 'evento', estado: 'activo' }, { limit: 0 })
-    const sitios = await couch.find(db, { type: 'sitio', estado: 'activo' }, { limit: 0 })
-    const negocios = await couch.find(db, { type: 'negocio', estado: 'activo' }, { limit: 0 })
-    const usuarios = await couch.find(db, { type: 'usuario', activo: true }, { limit: 0 })
+    const eventos = await couch.find(dbUsers, { type: 'evento', estado: 'activo' }, { limit: 0 })
+    const sitios = await couch.find(dbUsers, { type: 'sitio', estado: 'activo' }, { limit: 0 })
+    const negocios = await couch.find(dbNegocios, { type: 'negocio', estado: 'activo' }, { limit: 0 })
+    const usuarios = await couch.find(dbUsers, { type: 'usuario', activo: true }, { limit: 0 })
 
-    const allEventos = await couch.find(db, { type: 'evento' }, { fields: ['reseñas'] })
-    const allSitios = await couch.find(db, { type: 'sitio' }, { fields: ['reseñas'] })
-    const allNegocios = await couch.find(db, { type: 'negocio' }, { fields: ['reseñas'] })
+    const allEventos = await couch.find(dbUsers, { type: 'evento' }, { fields: ['reseñas'] })
+    const allSitios = await couch.find(dbUsers, { type: 'sitio' }, { fields: ['reseñas'] })
+    const allNegocios = await couch.find(dbNegocios, { type: 'negocio' }, { fields: ['reseñas'] })
     const totalResenas =
       (allEventos.docs.reduce((acc, ev) => acc + (ev.reseñas?.length || 0), 0) +
        allSitios.docs.reduce((acc, si) => acc + (si.reseñas?.length || 0), 0) +

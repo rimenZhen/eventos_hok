@@ -215,6 +215,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { couch } from 'src/api/index'
+import { negocioAPI } from 'src/api/negocio'
 import { useAuthStore } from 'src/stores/auth'
 import { useConfiguracionStore } from 'src/stores/configuracion'
 import FormularioResena from 'src/components/FormularioResena.vue'
@@ -339,12 +340,8 @@ const negociosCercanos = ref([])
 const cargarNegociosCercanos = async () => {
   if (!evento.value?.localizacion) return
   try {
-    const result = await couch.find(import.meta.env.VITE_DB_DATA, {
-      type: 'negocio',
-      estado: 'activo',
-      municipio: evento.value.municipio
-    }, { limit: 5 })
-    negociosCercanos.value = result.docs.map(neg => ({
+    const result = await negocioAPI.listNegociosActivos({ municipio: evento.value.municipio }, { limit: 5 })
+    negociosCercanos.value = result.map(neg => ({
       id: neg._id,
       nombre: neg.nombre_comercial,
       descripcion: neg.descripcion?.substring(0, 50),

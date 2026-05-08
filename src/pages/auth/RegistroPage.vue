@@ -195,6 +195,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from 'src/stores/auth'
 import { useConfiguracionStore } from 'src/stores/configuracion'
 import { couch } from 'src/api/index'
+import { negocioAPI } from 'src/api/negocio'
 
 const DB = import.meta.env.VITE_DB_DATA
 
@@ -364,8 +365,8 @@ async function onSubmit() {
         departamento: form.detalle_negocio.departamento,
         distrito: form.detalle_negocio.distrito,
         localizacion: {
-          lat: Number(form.detalle_negocio.localizacion.lat) || 0,
-          lng: Number(form.detalle_negocio.localizacion.lng) || 0,
+          lat: form.detalle_negocio.localizacion.lat,
+          lng: form.detalle_negocio.localizacion.lng,
           direccion: form.detalle_negocio.localizacion.direccion || ''
         },
         estado_solicitud: 'pendiente'
@@ -392,6 +393,25 @@ async function onSubmit() {
       rol: form.rol,
       detalles
     })
+
+    if (form.rol === 'negocio') {
+      await negocioAPI.crearNegocio(authStore.user._id, {
+        nombre_comercial: form.detalle_negocio.nombre_comercial,
+        nit_registro: form.detalle_negocio.nit_registro,
+        telefono: form.detalle_negocio.contacto,
+        departamento: form.detalle_negocio.departamento,
+        distrito: form.detalle_negocio.distrito,
+        municipio: form.detalle_negocio.distrito,
+        localizacion: {
+          lat: form.detalle_negocio.localizacion.lat,
+          lng: form.detalle_negocio.localizacion.lng,
+          direccion: form.detalle_negocio.localizacion.direccion || ''
+        },
+        estado: 'activo',
+        estado_solicitud: 'pendiente'
+      })
+    }
+
     router.push('/')
   } catch {
     // error manejado en el store

@@ -188,6 +188,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { couch } from 'src/api/index'
+import { negocioAPI } from 'src/api/negocio'
 import { useAuthStore } from 'src/stores/auth'
 import { useConfiguracionStore } from 'src/stores/configuracion' // nueva importación
 import FormularioResena from 'src/components/FormularioResena.vue'
@@ -255,12 +256,8 @@ const cargarNegociosCercanos = async () => {
   const mun = extraerLabel(sitio.value?.municipio)
   if (!mun) return
   try {
-    const result = await couch.find(import.meta.env.VITE_DB_DATA, {
-      type: 'negocio',
-      estado: 'activo',
-      municipio: mun
-    }, { limit: 3 })
-    negociosCercanos.value = result.docs.map(neg => ({
+    const result = await negocioAPI.listNegociosActivos({ municipio: mun }, { limit: 3 })
+    negociosCercanos.value = result.map(neg => ({
       id: neg._id,
       nombre: neg.nombre_comercial,
       descripcion: neg.descripcion?.substring(0, 50) + '...',

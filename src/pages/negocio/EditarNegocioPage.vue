@@ -64,11 +64,9 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from 'src/stores/auth'
 import { useConfiguracionStore } from 'src/stores/configuracion'
 import { negocioAPI } from 'src/api/negocio'
-import { usuariosAPI } from 'src/api/usuarios'
 import { couch } from 'src/api/index'
 import HorarioSemanal from 'src/components/HorarioSemanal.vue'
 
-const DB = import.meta.env.VITE_DB_DATA
 
 const auth = useAuthStore()
 const configStore = useConfiguracionStore()
@@ -182,6 +180,7 @@ function usarUbicacionActual() {
 onMounted(async () => {
   if (configStore.departamentos.length === 0) await configStore.fetchCatalogos()
   try {
+    // Intentar cargar negocio existente desde DB_NEGOCIOS
     const negocio = await negocioAPI.getMiNegocio(auth.user._id)
     negocioId.value = negocio._id
     docRev.value = negocio._rev
@@ -213,38 +212,9 @@ onMounted(async () => {
       lng: negocio.localizacion?.lng || -89.2,
       horario: negocio.horario || crearHorarioBase()
     })
-  } catch {
-    // Fallback: cargar desde el usuario
-        try {
-      const usuarioDoc = await couch.get(DB, auth.user._id)
-      const detalle = usuarioDoc.detalles?.detalle_negocio
-      if (detalle) {
-        const deptoClave = getDepartamentoClave(detalle.departamento)
-        // Leer distrito o municipio como respaldo
-        let distritoClave = getValue(detalle.distrito) || getValue(detalle.municipio)
-        if (distritoClave && deptoClave) {
-          const distritosDepto = configStore.getDistritosByDepartamento(deptoClave)
-          if (!distritosDepto.some(d => d.value === distritoClave)) {
-            distritoClave = findDistritoClaveByNombre(distritoClave, deptoClave) || null
-          }
-        }
-        Object.assign(form, {
-          nombre_comercial: detalle.nombre_comercial || '',
-          descripcion: detalle.descripcion || '',
-          categoria: getValue(detalle.categoria),
-          telefono: detalle.contacto || '',
-          nit_registro: detalle.nit_registro || '',
-          departamento: deptoClave,
-          distrito: distritoClave,         // ←
-          direccion: detalle.localizacion?.direccion || '',
-          lat: detalle.localizacion?.lat || 13.7,
-          lng: detalle.localizacion?.lng || -89.2,
-          horario: detalle.horario || crearHorarioBase()
-        })
-      }
-    } catch (e2) {
-      console.error('Error al cargar datos del usuario:', e2)
-    }
+    } catch {
+    // Primer negocio: No existe aún en DB_NEGOCIOS
+    console.log('Primer negocio - formulario vacío listo para crear')
   }
 })
 
@@ -273,17 +243,16 @@ async function guardar() {
     }
 
     if (negocioId.value) {
+      // Actualizar negocio existente
       await negocioAPI.updateNegocio(negocioId.value, docRev.value, updates)
     } else {
-      const usuarioDoc = await couch.get(DB, auth.user._id)
-      usuarioDoc.detalles.detalle_negocio = {
-        ...usuarioDoc.detalles.detalle_negocio,
-        ...updates,
-        contacto: form.telefono
-      }
-      await couch.put(DB, usuarioDoc)
+      // Crear nuevo negocio en DB_NEGOCIOS
+      const nuevoNegocio = await negocioAPI.crearNegocio(auth.user._id, updates)
+      negocioId.value = nuevoNegocio._id
+      docRev.value = nuevoNegocio._rev
     }
 
+    // Subir imagen si existe
     if (portadaFile.value && negocioId.value) {
       const imgDocId = 'neg_' + negocioId.value
       let imgDoc
@@ -293,19 +262,6 @@ async function guardar() {
         imgDoc = await couch.createImageDoc(imgDocId, 'negocio', negocioId.value)
       }
       await couch.uploadImage(imgDocId, imgDoc._rev, portadaFile.value)
-    }
-
-    // Enviar solicitud de aprobación si está pendiente y hay municipio
-    if (form.municipio) {
-      const usuarioDoc = await couch.get(DB, auth.user._id)
-      const estado = usuarioDoc.detalles?.detalle_negocio?.estado_solicitud || 'sin_solicitud'
-      if (estado === 'sin_solicitud' || estado === 'rechazado') {
-        try {
-          await usuariosAPI.submitNegocioApprovalRequest(auth.user._id)
-        } catch (e) {
-          console.error('Error al enviar solicitud automática:', e)
-        }
-      }
     }
 
     router.push('/negocio/perfil')

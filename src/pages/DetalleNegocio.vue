@@ -336,7 +336,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, reactive } from 'vue'
+import { ref, computed, onMounted, reactive, watch, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { couch } from 'src/api/index'
 import { negocioAPI } from 'src/api/negocio'
@@ -371,6 +371,10 @@ const mostrarDetalleProducto = ref(false)
 const activeProductSlides = reactive({})
 const slideActualDetalle = ref(0)
 const productoSeleccionado = ref(null)
+const portadaImageSrc = ref(null)
+const catalogImageSources = reactive({})
+const placeholderPortada = 'https://via.placeholder.com/1200x675'
+const placeholderCatalogo = 'https://via.placeholder.com/400x400'
 
 
 const getValue = (val) => {
@@ -397,8 +401,12 @@ const imgDocId = computed(() => 'neg_' + negocio.value?._id)
 const imagenPortada = computed(() => {
   if (imgError.value || !negocio.value) return null
 
+  if (portadaImageSrc.value) {
+    return portadaImageSrc.value
+  }
+
   if (negocio.value.imagen_portada) {
-    return couch.getImageUrl(imgDocId.value, negocio.value.imagen_portada)
+    return placeholderPortada
 
 // Nueva función para obtener la clave de categoría (soporta string u objeto {label, value})
   }
@@ -406,7 +414,7 @@ const imagenPortada = computed(() => {
   if (docImagenes.value && docImagenes.value._attachments) {
     const nombresArchivos = Object.keys(docImagenes.value._attachments)
     if (nombresArchivos.length > 0) {
-      return couch.getImageUrl(imgDocId.value, nombresArchivos.at(-1))
+      return placeholderPortada
     }
   }
   return null
@@ -414,7 +422,60 @@ const imagenPortada = computed(() => {
 
 const getImagenCatalogo = (nombre) => {
   if (!nombre) return ''
-  return couch.getImageUrl(imgDocId.value, nombre)
+  const key = `${imgDocId.value}/${nombre}`
+  return catalogImageSources[key] || placeholderCatalogo
+}
+
+async function cargarImagenCatalogo(nombre) {
+  if (!nombre || !negocio.value?._id) return
+  const key = `${imgDocId.value}/${nombre}`
+  if (catalogImageSources[key]?.startsWith('blob:')) return
+
+  try {
+    const blob = await couch.fetchImageBlob(imgDocId.value, nombre)
+    const objectUrl = URL.createObjectURL(blob)
+    const previous = catalogImageSources[key]
+    if (previous?.startsWith('blob:')) URL.revokeObjectURL(previous)
+    catalogImageSources[key] = objectUrl
+  } catch {
+    catalogImageSources[key] = placeholderCatalogo
+  }
+}
+
+async function cargarPortada() {
+  if (!negocio.value?._id) return
+
+  const attachmentName = negocio.value.imagen_portada || Object.keys(docImagenes.value?._attachments || {}).at(-1)
+  if (!attachmentName) {
+    portadaImageSrc.value = null
+    return
+  }
+
+  // Si ya está cargada como blob, no recargues
+  if (portadaImageSrc.value?.startsWith('blob:')) return
+
+  try {
+    const blob = await couch.fetchImageBlob(imgDocId.value, attachmentName)
+    const objectUrl = URL.createObjectURL(blob)
+    if (portadaImageSrc.value?.startsWith('blob:')) URL.revokeObjectURL(portadaImageSrc.value)
+    portadaImageSrc.value = objectUrl
+  } catch {
+    portadaImageSrc.value = placeholderPortada
+  }
+}
+
+async function precargarImagenesCatalogo() {
+  if (!negocio.value?.catalogo?.length) return
+  const archivos = new Set()
+
+  for (const item of negocio.value.catalogo) {
+    const nombres = item.imagenes?.length ? item.imagenes : item.imagen ? [item.imagen] : []
+    for (const nombre of nombres) {
+      if (nombre) archivos.add(nombre)
+    }
+  }
+
+  await Promise.all([...archivos].map(nombre => cargarImagenCatalogo(nombre)))
 }
 
 function getMeta(tipo) {
@@ -495,9 +556,6 @@ async function cargarNegocio() {
 async function agregarResena({ calificacion, comentario }) {
   if (!auth.user) return
   try {
-    // Recargar el documento más reciente para evitar conflictos de versión
-    const docFresco = await couch.get(import.meta.env.VITE_DB_DATA, negocio.value._id)
-
     const nuevaResena = {
       usuario_nombres: auth.user.nombres,
       usuario_apellidos: auth.user.apellidos,
@@ -506,16 +564,33 @@ async function agregarResena({ calificacion, comentario }) {
       fecha: new Date().toISOString()
     }
 
-    docFresco.reseñas = docFresco.reseñas || []
-    docFresco.reseñas.push(nuevaResena)
+    // Guardar reseña en la colección de negocios (eventos_negocios)
+    await negocioAPI.addResena(negocio.value._id, nuevaResena)
 
-    const total = docFresco.reseñas.reduce((sum, r) => sum + r.calificacion, 0)
-    docFresco.calificacion_promedio = total / docFresco.reseñas.length
+    // También registrar la reseña dentro del perfil del usuario en eventos_data
+    try {
+      const userDoc = await couch.get(import.meta.env.VITE_DB_DATA, auth.user._id)
+      if (!userDoc.detalles) userDoc.detalles = {}
+      if (!userDoc.detalles.detalle_usuario) {
+        userDoc.detalles.detalle_usuario = { reseñas: [], foto_perfil: '', departamento_interes: '', categorias_favoritas: [], eventos_guardados: [], sitios_guardados: [], negocios_guardados: [], historial_viajes: [] }
+      }
+      userDoc.detalles.detalle_usuario.reseñas = userDoc.detalles.detalle_usuario.reseñas || []
+      userDoc.detalles.detalle_usuario.reseñas.push({
+        tipo_destino: 'negocio',
+        destino_nombre: negocio.value.nombre_comercial,
+        destino_id: negocio.value._id,
+        destino_departamento: negocio.value.departamento,
+        calificacion,
+        comentario,
+        fecha: new Date().toISOString()
+      })
+      await couch.put(import.meta.env.VITE_DB_DATA, userDoc)
+    } catch (e) {
+      console.warn('No se pudo actualizar el perfil del usuario con la reseña', e)
+    }
 
-    await couch.put(import.meta.env.VITE_DB_DATA, docFresco)
-
-    // Recargar para mostrar la nueva reseña
-    await cargarNegocio()
+    // Recargar negocio para mostrar la nueva reseña
+    negocio.value = await negocioAPI.getNegocioById(negocio.value._id)
   } catch (err) {
     console.error('Error al guardar reseña:', err)
   }
@@ -550,6 +625,27 @@ async function abrirDetalleProducto(index) {
 onMounted(async () => {
   await configStore.fetchCatalogos()
   await cargarNegocio()
+})
+
+watch(
+  () => negocio.value?.catalogo,
+  () => { precargarImagenesCatalogo() },
+  { deep: true, immediate: true }
+)
+
+watch(
+  () => [negocio.value?.imagen_portada, docImagenes.value?._attachments],
+  () => { cargarPortada() },
+  { deep: true, immediate: true }
+)
+
+onBeforeUnmount(() => {
+  if (portadaImageSrc.value?.startsWith('blob:')) {
+    URL.revokeObjectURL(portadaImageSrc.value)
+  }
+  Object.values(catalogImageSources).forEach(src => {
+    if (typeof src === 'string' && src.startsWith('blob:')) URL.revokeObjectURL(src)
+  })
 })
 </script>
 

@@ -324,7 +324,7 @@
 
 <script setup>
   defineOptions({ name: 'CatalogoNegocio' })
-  import { ref, reactive, onMounted, computed } from 'vue'
+  import { ref, reactive, onMounted, computed, watch, onBeforeUnmount } from 'vue'
   import { useAuthStore } from 'src/stores/auth'
   import { negocioAPI } from 'src/api/negocio'
   import { couch } from 'src/api/index'
@@ -361,6 +361,8 @@
   const replaceFile = ref(null)
   const pendingDeleteImages = ref([])
   const pendingReplacementFiles = reactive({})
+  const imageSources = reactive({})
+  const placeholderImage = 'https://via.placeholder.com/400x300'
 
   const prod = reactive({
     nombre: '',
@@ -377,6 +379,18 @@
       console.warn('No se pudo cargar negocio para catálogo', err)
       negocio.value = null
     }
+  })
+
+  watch(
+    () => negocio.value?.catalogo,
+    () => { precargarImagenesCatalogo() },
+    { deep: true, immediate: true }
+  )
+
+  onBeforeUnmount(() => {
+    Object.values(imageSources).forEach(src => {
+      if (typeof src === 'string' && src.startsWith('blob:')) URL.revokeObjectURL(src)
+    })
   })
 
   const currentEditImages = computed(() => {
@@ -404,15 +418,39 @@
   }
 
   function getImagenProducto(nombreArchivo) {
+    if (!nombreArchivo || !negocio.value?._id) return placeholderImage
+    const key = `neg_${negocio.value._id}/${nombreArchivo}`
+    return imageSources[key] || placeholderImage
+  }
+
+  async function cargarImagenProducto(nombreArchivo) {
+    if (!nombreArchivo || !negocio.value?._id) return
+    const key = `neg_${negocio.value._id}/${nombreArchivo}`
+    if (imageSources[key] && !imageSources[key].startsWith('blob:')) return
+
     try {
-      if (!nombreArchivo || !negocio?.value?._id) return 'https://via.placeholder.com/400x300'
-      // asegurar que los valores estén codificados correctamente
-      return couch.getImageUrl('neg_' + negocio.value._id, nombreArchivo)
-    } catch (err) {
-      // fallback visual y log para depuración
-      console.warn('getImagenProducto error:', err)
-      return 'https://via.placeholder.com/400x300'
+      const blob = await couch.fetchImageBlob(`neg_${negocio.value._id}`, nombreArchivo)
+      const objectUrl = URL.createObjectURL(blob)
+      const previous = imageSources[key]
+      if (previous?.startsWith('blob:')) URL.revokeObjectURL(previous)
+      imageSources[key] = objectUrl
+    } catch {
+      imageSources[key] = placeholderImage
     }
+  }
+
+  async function precargarImagenesCatalogo() {
+    if (!negocio.value?._id) return
+    const archivos = new Set()
+
+    for (const item of negocio.value.catalogo || []) {
+      const nombres = item.imagenes?.length ? item.imagenes : item.imagen ? [item.imagen] : []
+      for (const nombre of nombres) {
+        if (nombre) archivos.add(nombre)
+      }
+    }
+
+    await Promise.all([...archivos].map(nombre => cargarImagenProducto(nombre)))
   }
 
   function formatDate(date) {
@@ -529,8 +567,7 @@
       precio: prod.precio,
       tipo: prod.tipo,
       catalogKey: existingItem?.catalogKey || prod.catalogKey || '',
-      imagenes: [],
-      imagen: ''
+      imagenes: []
     }
 
     const hasImageChanges =
@@ -583,13 +620,11 @@
         }
 
         nuevoItem.imagenes = workingImages
-        nuevoItem.imagen = workingImages[0] || ''
       } catch (err) {
         console.error('Error en proceso de imágenes:', err)
       }
     } else if (existingItem) {
       nuevoItem.imagenes = baseImages
-      nuevoItem.imagen = baseImages[0] || ''
     }
 
     try {

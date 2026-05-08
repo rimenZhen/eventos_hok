@@ -1,6 +1,56 @@
 import { couch } from './index'
 import bcrypt from 'bcryptjs'
+import { negocioAPI } from './negocio'
 const DB = import.meta.env.VITE_DB_DATA
+
+function normalizeText(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+}
+
+function findDistrictInConfiguracionDocs(docs, distritoClave) {
+  const target = normalizeText(distritoClave)
+
+  for (const doc of docs || []) {
+    for (const item of doc.items || []) {
+      if (Array.isArray(item.distritos)) {
+        for (const distrito of item.distritos) {
+          const clave = normalizeText(distrito.clave)
+          const nombre = normalizeText(distrito.nombre)
+          if (clave === target || nombre === target) {
+            return distrito
+          }
+        }
+      }
+    }
+  }
+
+  return null
+}
+
+async function resolveAlcaldiaForDistrict(distritoClave) {
+  const configuracionDocs = (await couch.find(DB, { type: 'configuracion' })).docs || []
+  const distrito = findDistrictInConfiguracionDocs(configuracionDocs, distritoClave)
+  if (!distrito?.alcaldia) return null
+
+  const alcaldiaMeta = distrito.alcaldia
+  const nombreInstitucional = normalizeText(alcaldiaMeta.nombre_institucional)
+
+  const alcaldias = await couch.find(DB, {
+    type: 'usuario',
+    rol: 'alcaldia'
+  })
+
+  const match = (alcaldias.docs || []).find(doc => {
+    const detalle = doc.detalles?.detalle_alcaldia || {}
+    return normalizeText(detalle.nombre_institucional) === nombreInstitucional
+  })
+
+  if (match) return { ...match, meta: alcaldiaMeta }
+
+  return { meta: alcaldiaMeta }
+}
 
 export const usuariosAPI = {
   // Actualizar campos del perfil (nombres, apellidos, etc.)
@@ -81,38 +131,64 @@ export const usuariosAPI = {
   // Enviar/Reenenviar solicitud de aprobación del negocio a la alcaldía
   async submitNegocioApprovalRequest(userId) {
     const doc = await couch.get(DB, userId)
-    if (!doc.detalles?.detalle_negocio) {
-      throw new Error('No se encontraron detalles del negocio')
+    let detalleNegocio = doc.detalles?.detalle_negocio || null
+
+    if (!detalleNegocio) {
+      try {
+        const negocioDoc = await negocioAPI.getMiNegocio(userId)
+        detalleNegocio = {
+          nombre_comercial: negocioDoc.nombre_comercial || '',
+          nit_registro: negocioDoc.nit_registro || '',
+          contacto: negocioDoc.telefono || '',
+          departamento: negocioDoc.departamento || null,
+          distrito: negocioDoc.distrito || negocioDoc.municipio || null,
+          localizacion: negocioDoc.localizacion || { lat: null, lng: null, direccion: '' },
+          estado_solicitud: negocioDoc.estado_solicitud || 'sin_solicitud'
+        }
+        doc.detalles = doc.detalles || {}
+        doc.detalles.detalle_negocio = detalleNegocio
+        await couch.put(DB, doc)
+      } catch {
+        throw new Error('No se encontraron detalles del negocio')
+      }
     }
 
-    const distritoClave = doc.detalles.detalle_negocio.distrito
+    const distritoClave = detalleNegocio.distrito
     if (!distritoClave) {
       throw new Error('El negocio debe tener un distrito seleccionado antes de enviar la solicitud')
     }
 
-    const alcaldiaResult = await couch.find(DB, {
-      type: 'usuario',
-      rol: 'alcaldia',
-      'detalles.detalle_alcaldia.distrito': distritoClave
-    })
-
-    if (alcaldiaResult.docs.length === 0) {
+    const alcaldiaDestino = await resolveAlcaldiaForDistrict(distritoClave)
+    if (!alcaldiaDestino?.meta) {
       throw new Error('No se encontró una alcaldía asociada a ese distrito')
     }
 
-    const alcaldiaDestino = alcaldiaResult.docs[0]
-
+    doc.detalles = doc.detalles || {}
+    doc.detalles.detalle_negocio = doc.detalles.detalle_negocio || detalleNegocio
     doc.detalles.detalle_negocio.estado_solicitud = 'pendiente'
     doc.detalles.detalle_negocio.fecha_solicitud = new Date().toISOString()
     doc.detalles.detalle_negocio.fue_rechazado = false
     doc.detalles.detalle_negocio.alcaldia_destino = {
-      _id: alcaldiaDestino._id,
-      nombre_institucional: alcaldiaDestino.detalles?.detalle_alcaldia?.nombre_institucional || '',
-      departamento: alcaldiaDestino.detalles?.detalle_alcaldia?.departamento || '',
-      distrito: alcaldiaDestino.detalles?.detalle_alcaldia?.distrito || '',
-      municipio: alcaldiaDestino.detalles?.detalle_alcaldia?.municipio || ''
+      _id: alcaldiaDestino._id || alcaldiaDestino.meta._id || '',
+      nombre_institucional: alcaldiaDestino.meta.nombre_institucional || alcaldiaDestino.detalles?.detalle_alcaldia?.nombre_institucional || '',
+      departamento: alcaldiaDestino.meta.departamento || alcaldiaDestino.detalles?.detalle_alcaldia?.departamento || '',
+      distrito: alcaldiaDestino.meta.distrito || alcaldiaDestino.detalles?.detalle_alcaldia?.distrito || '',
+      municipio: alcaldiaDestino.meta.municipio || alcaldiaDestino.detalles?.detalle_alcaldia?.municipio || ''
     }
-    return couch.put(DB, doc)
+    await couch.put(DB, doc)
+
+    // Sincroniza también el estado pendiente en el documento de negocio
+    try {
+      const negocioDoc = await negocioAPI.getMiNegocio(userId)
+      await negocioAPI.updateNegocio(negocioDoc._id, negocioDoc._rev, {
+        estado_solicitud: 'pendiente',
+        fue_rechazado: false
+      })
+    } catch (e) {
+      console.warn('No se pudo sincronizar estado de solicitud en eventos_negocios', e)
+    }
+
+    return { ok: true }
   },
 
   // Actualizar contraseña

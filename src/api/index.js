@@ -17,6 +17,7 @@ async function request(url, options = {}) {
   const response = await fetch(url, options)
   if (!response.ok) {
     const error = new Error(`HTTP ${response.status} - ${response.statusText}`)
+    error.status = response.status
     try { error.details = await response.json() } catch { /* */ }
     throw error
   }
@@ -43,6 +44,22 @@ export const couch = {
       body: JSON.stringify(doc)
     })
   },
+  putById: (db, doc) => {
+    if (!doc._id) throw new Error('PUT requiere _id')
+    return request(`${couchUrl}/${db}/${encodeURIComponent(doc._id)}`, {
+      method: 'PUT',
+  putById: (db, doc) => {
+    if (!doc._id) throw new Error('PUT requiere _id')
+    return request(`${couchUrl}/${db}/${encodeURIComponent(doc._id)}`, {
+      method: 'PUT',
+      headers: getHeaders(db, 'PUT'),
+      body: JSON.stringify(doc)
+    })
+  },
+      headers: getHeaders(db, 'PUT'),
+      body: JSON.stringify(doc)
+    })
+  },
   remove: (db, doc) => {
     if (!doc._id || !doc._rev) throw new Error('DELETE requiere _id y _rev')
     return request(`${couchUrl}/${db}/${encodeURIComponent(doc._id)}?rev=${doc._rev}`, {
@@ -63,9 +80,33 @@ export const couch = {
     const url = `${couchUrl}/${db}/_all_docs${params ? '?' + params : ''}`
     return request(url, { headers: getHeaders(db, 'GET') })
   },
+  allDocsByKeys: (db, keys, options = {}) =>
+    request(`${couchUrl}/${db}/_all_docs`, {
+      method: 'POST',
+      headers: getHeaders(db, 'POST'),
+      body: JSON.stringify({ keys, include_docs: true, ...options })
+    }),
   // Imágenes
   getImageUrl: (imgDocId, attachmentName) =>
     `${couchUrl}/${dbImages}/${encodeURIComponent(imgDocId)}/${encodeURIComponent(attachmentName)}`,
+
+  fetchImageBlob: async (imgDocId, attachmentName) => {
+    const url = `${couchUrl}/${dbImages}/${encodeURIComponent(imgDocId)}/${encodeURIComponent(attachmentName)}`
+    const res = await fetch(url, {
+      method: 'GET',
+      mode: 'cors',
+      credentials: 'include',
+      headers: {
+        Authorization: authHeader
+      }
+    })
+    if (!res.ok) {
+      const error = new Error(`Error al cargar imagen: ${res.status}`)
+      try { error.details = await res.json() } catch { /* */ }
+      throw error
+    }
+    return res.blob()
+  },
 
     createImageDoc: async (imgDocId, entidadTipo, entidadId) => {
     const response = await couch.post(dbImages, {
