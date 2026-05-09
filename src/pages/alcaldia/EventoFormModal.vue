@@ -65,12 +65,13 @@
             <div class="col-12 col-md-6">
               <q-input
                 v-model.number="form.costo"
-                label="Costo"
+                label="Precio"
                 type="number"
                 step="0.01"
                 min="0"
                 outlined
                 prefix="$"
+                hint="Usa 0.00 si es gratis"
               />
             </div>
 
@@ -83,7 +84,7 @@
               />
             </div>
 
-            <div class="col-12">
+            <div class="col-12 col-md-6">
               <q-input
                 v-model.trim="form.enlace_compra"
                 label="Enlace de compra"
@@ -135,6 +136,10 @@
 
             <div class="col-12">
               <div class="field-label">Imágenes adicionales (opcional)</div>
+              <div class="text-caption text-grey-7 q-mb-xs">
+                Puedes agregar hasta {{ MAX_EXTRA_IMAGES }} imágenes adicionales. Actualmente:
+                {{ previewsExtras.length }}/{{ MAX_EXTRA_IMAGES }}
+              </div>
 
               <input
                 ref="extrasInput"
@@ -151,7 +156,7 @@
                   :key="idx"
                   class="extra-preview relative-position"
                 >
-                  <q-img :src="img" class="fit rounded-borders" fit="cover" />
+                  <q-img :src="img.src" class="fit rounded-borders" fit="cover" />
                   <q-btn
                     round
                     dense
@@ -163,7 +168,11 @@
                     @click.stop="removeExtraImage(idx)"
                   />
                 </div>
-                <div class="extra-add" @click="extrasInput?.click()">
+                <div
+                  v-if="previewsExtras.length < MAX_EXTRA_IMAGES"
+                  class="extra-add"
+                  @click="extrasInput?.click()"
+                >
                   <q-icon name="add" size="28px" color="grey-6" />
                 </div>
               </div>
@@ -200,19 +209,58 @@
         <section v-if="currentStep === 3" class="step-content">
           <div class="row q-col-gutter-md">
             <div class="col-12">
-              <div class="field-label">
-                <q-icon name="map" />
-                Selecciona la ubicación en el mapa *
+              <q-select
+                v-model="form.tipo_ubicacion"
+                :options="opcionesUbicacion"
+                label="¿Cómo definir la ubicación?"
+                outlined
+                emit-value
+                map-options
+                :error="!!errors.ubicacion"
+                :error-message="errors.ubicacion"
+              />
+            </div>
+
+            <div v-if="form.tipo_ubicacion === 'sitio'" class="col-12">
+              <q-select
+                v-model="form.sitio_asociado"
+                :options="sitiosDisponibles"
+                label="Asignar a un sitio existente"
+                outlined
+                emit-value
+                map-options
+                option-label="nombre"
+                option-value="_id"
+                clearable
+                :error="!!errors.ubicacion"
+                :error-message="errors.ubicacion"
+                hint="Solo se muestran sitios creados por tu alcaldía"
+              />
+            </div>
+
+            <div v-if="form.tipo_ubicacion === 'actual'" class="col-12">
+              <q-banner rounded class="bg-grey-2 text-grey-9 q-mb-sm">
+                Se tomará automáticamente la ubicación actual del dispositivo. El navegador puede
+                pedir permiso.
+              </q-banner>
+              <div v-if="locationLoading" class="text-caption text-primary q-mt-sm">
+                Obteniendo ubicación actual...
               </div>
+              <div
+                v-else-if="form.lat !== null && form.lng !== null"
+                class="text-caption text-positive q-mt-sm"
+              >
+                Ubicación guardada correctamente.
+              </div>
+            </div>
+
+            <div v-if="form.tipo_ubicacion === 'mapa'" class="col-12 event-map-picker">
               <MapLocationPicker
                 :latitude="form.lat"
                 :longitude="form.lng"
                 @update:location="actualizarUbicacion"
                 height="300px"
               />
-              <div v-if="errors.ubicacion" class="text-negative text-caption q-mt-xs">
-                {{ errors.ubicacion }}
-              </div>
             </div>
 
             <div class="col-12">
@@ -223,38 +271,48 @@
                 outlined
                 emit-value
                 map-options
-                :disable="distritosOptions.length === 0"
+                :disable="form.tipo_ubicacion === 'sitio' || distritosOptions.length === 0"
                 :error="!!errors.distrito"
                 :error-message="errors.distrito"
-                hint="Solo se muestran los distritos asociados a tu alcaldía"
+                hint="Solo se muestran distritos asociados a tu alcaldía"
               />
             </div>
 
             <div class="col-12">
-              <q-input v-model.trim="form.direccion" label="Dirección" outlined />
+              <q-input
+                v-model.trim="form.direccion"
+                label="Dirección detallada"
+                outlined
+                :readonly="form.tipo_ubicacion === 'sitio'"
+              />
             </div>
           </div>
         </section>
 
-        <!-- Paso 4: Resumen sin toggle de publicación -->
         <section v-if="currentStep === 4" class="step-content">
           <div class="text-h6 q-mb-sm">Resumen del evento</div>
           <q-list dense bordered class="rounded-borders q-mb-md">
-            <q-item>
-              <q-item-section>Nombre: {{ form.titulo || '---' }}</q-item-section>
-            </q-item>
-            <q-item>
-              <q-item-section>Descripción: {{ form.descripcion || '---' }}</q-item-section>
-            </q-item>
-            <q-item>
-              <q-item-section>Precio: {{ Number(form.costo || 0).toFixed(2) }} USD</q-item-section>
-            </q-item>
-            <q-item>
-              <q-item-section>Distrito: {{ distritoSeleccionado?.nombre || '---' }}</q-item-section>
-            </q-item>
-            <q-item>
-              <q-item-section>Dirección detallada: {{ form.direccion || '---' }}</q-item-section>
-            </q-item>
+            <q-item
+              ><q-item-section>Nombre: {{ form.titulo || '---' }}</q-item-section></q-item
+            >
+            <q-item
+              ><q-item-section>Descripción: {{ form.descripcion || '---' }}</q-item-section></q-item
+            >
+            <q-item
+              ><q-item-section
+                >Precio: {{ Number(form.costo || 0).toFixed(2) }} USD</q-item-section
+              ></q-item
+            >
+            <q-item
+              ><q-item-section
+                >Distrito: {{ distritoSeleccionado?.nombre || '---' }}</q-item-section
+              ></q-item
+            >
+            <q-item
+              ><q-item-section
+                >Dirección detallada: {{ form.direccion || '---' }}</q-item-section
+              ></q-item
+            >
           </q-list>
           <div class="text-caption text-grey-7">
             El evento se publicará automáticamente al guardar.
@@ -298,6 +356,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
+import { useQuasar } from 'quasar'
 import { useAuthStore } from 'src/stores/auth'
 import { useConfiguracionStore } from 'src/stores/configuracion'
 import { couch } from 'src/api/index'
@@ -309,6 +368,7 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:modelValue', 'saved'])
 
+const $q = useQuasar()
 const auth = useAuthStore()
 const configStore = useConfiguracionStore()
 
@@ -330,39 +390,44 @@ const currentStepTitle = computed(
 )
 
 const saving = ref(false)
+const MAX_EXTRA_IMAGES = 5
 
 const form = reactive(getEmptyForm())
 const portadaFile = ref(null)
-const imagenesExtrasFiles = ref([])
 const portadaInput = ref(null)
 const extrasInput = ref(null)
 const previewPortada = ref(null)
 const previewsExtras = ref([])
 const errors = reactive({})
-const distritosCatalogo = ref([])
+const sitiosDisponibles = ref([])
+const locationLoading = ref(false)
+
+const detalleAlcaldia = computed(() => auth.user?.detalles?.detalle_alcaldia || {})
 
 const categoriasOptions = computed(() =>
   (configStore.categoriasEventos || []).map((c) => ({ label: c.nombre, value: c.clave })),
 )
 
-const distritosFuente = computed(() =>
-  (configStore.distritos || []).length > 0 ? configStore.distritos : distritosCatalogo.value,
-)
+const distritosOptions = computed(() => {
+  const alcaldiaClave = form.municipio || detalleAlcaldia.value.municipio
+  if (!alcaldiaClave) return []
 
-const distritosOptions = computed(() =>
-  (distritosFuente.value || [])
-    .filter((distrito) => distrito.activo !== false && distrito.alcaldia === form.municipio)
-    .map((distrito) => ({ label: distrito.nombre, value: distrito.clave })),
-)
+  return (configStore.distritos || [])
+    .filter((d) => d.activo !== false && d.alcaldia === alcaldiaClave)
+    .map((d) => ({ label: d.nombre, value: d.clave }))
+})
 
 const distritoSeleccionado = computed(() => {
-  const distrito = (distritosFuente.value || []).find((item) => item.clave === form.distrito)
-  if (!distrito) return null
-  return {
-    clave: distrito.clave,
-    nombre: distrito.nombre,
-  }
+  const clave = typeof form.distrito === 'object' ? form.distrito?.clave : form.distrito
+  const distrito = (configStore.distritos || []).find((d) => d.clave === clave)
+  return distrito ? { clave: distrito.clave, nombre: distrito.nombre } : null
 })
+
+const opcionesUbicacion = [
+  { label: 'Usar mapa', value: 'mapa' },
+  { label: 'Usar mi ubicación actual', value: 'actual' },
+  { label: 'Asignar a un sitio existente', value: 'sitio' },
+]
 
 watch(
   () => dialogVisible.value,
@@ -372,19 +437,40 @@ watch(
   },
 )
 
-async function cargarDistritosFallback() {
-  try {
-    const result = await couch.find(import.meta.env.VITE_DB_DATA, { type: 'configuracion' })
-    const distritosDoc = (result.docs || []).find((doc) => {
-      const descripcion = doc.descripcion?.toLowerCase() || ''
-      return descripcion.includes('distrito') || descripcion.includes('distritos')
-    })
-    distritosCatalogo.value = distritosDoc?.items?.filter((item) => item.activo !== false) || []
-  } catch (error) {
-    console.error(error)
-    distritosCatalogo.value = []
-  }
-}
+watch(
+  () => form.tipo_ubicacion,
+  (tipo) => {
+    if (tipo !== 'sitio') form.sitio_asociado = null
+    if (tipo === 'actual') {
+      usarUbicacionActual()
+    }
+  },
+)
+
+watch(
+  () => form.sitio_asociado,
+  (sitioId) => {
+    if (!sitioId || form.tipo_ubicacion !== 'sitio') return
+    const sitio = sitiosDisponibles.value.find((s) => s._id === sitioId)
+    if (!sitio) return
+
+    form.departamento = sitio.departamento || detalleAlcaldia.value.departamento || ''
+    form.municipio = sitio.municipio || detalleAlcaldia.value.municipio || ''
+    form.distrito =
+      typeof sitio.distrito === 'object' ? sitio.distrito.clave : sitio.distrito || null
+    form.direccion = sitio.direccion || sitio.localizacion?.direccion || ''
+    form.lat = sitio.localizacion?.lat ?? null
+    form.lng = sitio.localizacion?.lng ?? null
+
+    if (form.lat !== null && form.lng !== null) {
+      delete errors.ubicacion
+      notifyLocationSuccess('La ubicación del sitio fue guardada correctamente')
+    } else {
+      errors.ubicacion = 'El sitio seleccionado no tiene una ubicación válida'
+      notifyLocationError('El sitio seleccionado no tiene una ubicación válida')
+    }
+  },
+)
 
 async function prepararFormulario() {
   limpiarErrores()
@@ -394,18 +480,23 @@ async function prepararFormulario() {
   if (
     (configStore.categoriasEventos || []).length === 0 ||
     (configStore.distritos || []).length === 0
-  )
+  ) {
     await configStore.fetchCatalogos()
-  if ((configStore.distritos || []).length === 0) await cargarDistritosFallback()
-  if (!isEdit.value) {
-    const detalle = auth.user?.detalles?.detalle_alcaldia
-    if (detalle?.departamento) form.departamento = detalle.departamento
-    if (detalle?.municipio) form.municipio = detalle.municipio
-    if (detalle?.nombre_institucional) form.organizador = detalle.nombre_institucional
-    if (detalle?.telefono) form.contacto_organizador = detalle.telefono
   }
 
+  aplicarDatosAlcaldia()
+  await cargarSitios()
+
   if (props.evento) cargarEvento(props.evento)
+  aplicarDatosAlcaldia()
+}
+
+function aplicarDatosAlcaldia() {
+  const detalle = detalleAlcaldia.value
+  form.organizador = detalle.nombre_institucional || ''
+  form.contacto_organizador = form.contacto_organizador || detalle.telefono || ''
+  form.departamento = detalle.departamento || form.departamento || ''
+  form.municipio = detalle.municipio || form.municipio || ''
 }
 
 function getEmptyForm() {
@@ -419,11 +510,13 @@ function getEmptyForm() {
     enlace_compra: '',
     fecha_inicio: '',
     fecha_fin: '',
+    tipo_ubicacion: 'mapa',
+    sitio_asociado: null,
+    distrito: null,
     lat: null,
     lng: null,
     departamento: '',
     municipio: '',
-    distrito: null,
     direccion: '',
   }
 }
@@ -431,41 +524,53 @@ function getEmptyForm() {
 function resetForm() {
   Object.assign(form, getEmptyForm())
   portadaFile.value = null
-  imagenesExtrasFiles.value = []
   previewPortada.value = null
   previewsExtras.value = []
+  locationLoading.value = false
 }
 
 function cargarEvento(ev) {
-  const dep = typeof ev.departamento === 'object' ? ev.departamento.value : ev.departamento
-  const mun =
-    typeof ev.municipio === 'object' ? ev.municipio.nombre || ev.municipio.value : ev.municipio
-  const distrito = obtenerClaveDistrito(ev.distrito)
-
   Object.assign(form, {
     titulo: ev.titulo || '',
     descripcion: ev.descripcion || '',
     categoria: typeof ev.categoria === 'object' ? ev.categoria.value : ev.categoria || null,
-    costo: ev.costo || 0,
-    organizador: ev.organizador || '',
-    contacto_organizador: ev.contacto_organizador || '',
+    costo: ev.costo ?? ev.precio ?? 0,
+    organizador: ev.organizador || detalleAlcaldia.value.nombre_institucional || '',
+    contacto_organizador: ev.contacto_organizador || detalleAlcaldia.value.telefono || '',
     enlace_compra: ev.enlace_compra || '',
     fecha_inicio: ev.fecha_inicio ? ev.fecha_inicio.slice(0, 16) : '',
     fecha_fin: ev.fecha_fin ? ev.fecha_fin.slice(0, 16) : '',
+    tipo_ubicacion: ev.sitio_asociado ? 'sitio' : 'mapa',
+    sitio_asociado: ev.sitio_asociado || null,
+    distrito: typeof ev.distrito === 'object' ? ev.distrito.clave : ev.distrito || null,
     lat: ev.localizacion?.lat ?? null,
     lng: ev.localizacion?.lng ?? null,
-    departamento: dep || '',
-    municipio: mun || '',
-    distrito: distrito || null,
+    departamento: ev.departamento || '',
+    municipio: ev.municipio || '',
     direccion: ev.direccion || ev.localizacion?.direccion || '',
   })
+
   previewPortada.value = ev.imagen_portada || null
+  previewsExtras.value = (ev.imagenes_extra || []).map((name) => ({
+    src: name,
+    name,
+    file: null,
+    isNew: false,
+  }))
 }
 
-function obtenerClaveDistrito(distrito) {
-  if (!distrito) return null
-  if (typeof distrito === 'string') return distrito
-  return distrito.clave || distrito.value || null
+async function cargarSitios() {
+  try {
+    const res = await couch.find(import.meta.env.VITE_DB_DATA, {
+      type: 'sitio',
+      estado: 'activo',
+      'alcaldia._id': auth.user?._id,
+    })
+    sitiosDisponibles.value = res.docs || []
+  } catch (e) {
+    console.error(e)
+    sitiosDisponibles.value = []
+  }
 }
 
 function onPortadaSelected(event) {
@@ -480,25 +585,89 @@ function onPortadaSelected(event) {
 }
 
 function onExtrasSelected(event) {
-  const files = Array.from(event.target.files || []).slice(0, 5)
-  imagenesExtrasFiles.value = files
-  previewsExtras.value = []
+  const nuevos = Array.from(event.target.files || [])
+  const disponibles = MAX_EXTRA_IMAGES - previewsExtras.value.length
+  const seleccionados = nuevos.slice(0, disponibles)
 
-  files.forEach((file) => {
+  seleccionados.forEach((file) => {
     const reader = new FileReader()
-    reader.onload = (e) => previewsExtras.value.push(e.target.result)
+    reader.onload = (e) => {
+      previewsExtras.value.push({
+        src: e.target.result,
+        name: file.name,
+        file,
+        isNew: true,
+      })
+    }
     reader.readAsDataURL(file)
   })
+
+  if (extrasInput.value) extrasInput.value.value = ''
 }
 
 function removeExtraImage(idx) {
-  imagenesExtrasFiles.value = imagenesExtrasFiles.value.filter((_, i) => i !== idx)
   previewsExtras.value = previewsExtras.value.filter((_, i) => i !== idx)
 }
 
-function actualizarUbicacion({ lat, lng }) {
-  form.lat = lat
-  form.lng = lng
+function actualizarUbicacion({ lat, lng, direccion }) {
+  form.lat = Number(lat)
+  form.lng = Number(lng)
+  if (direccion && !form.direccion) form.direccion = direccion
+  delete errors.ubicacion
+}
+
+function notifyLocationSuccess(message = 'La ubicación ha sido guardada correctamente') {
+  $q.notify({
+    type: 'positive',
+    message,
+    timeout: 2200,
+  })
+}
+
+function notifyLocationError(message = 'No se pudo guardar la ubicación') {
+  $q.notify({
+    type: 'negative',
+    message,
+    timeout: 2600,
+  })
+}
+
+function usarUbicacionActual() {
+  if (!navigator.geolocation) {
+    errors.ubicacion = 'Tu navegador no permite obtener la ubicación actual'
+    notifyLocationError('Tu navegador no permite obtener la ubicación actual')
+    return
+  }
+
+  locationLoading.value = true
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      form.lat = position.coords.latitude
+      form.lng = position.coords.longitude
+      locationLoading.value = false
+      delete errors.ubicacion
+      notifyLocationSuccess('La ubicación actual fue guardada correctamente')
+    },
+    () => {
+      locationLoading.value = false
+      errors.ubicacion = 'No se pudo obtener la ubicación actual'
+      notifyLocationError('No se pudo obtener la ubicación actual')
+    },
+  )
+}
+
+function buildDistritoObject(clave = form.distrito) {
+  const distrito = (configStore.distritos || []).find((d) => d.clave === clave)
+  return distrito ? { clave: distrito.clave, nombre: distrito.nombre } : null
+}
+
+async function actualizarReferenciasImagenes(idEvento, imagenPortada, imagenesExtra) {
+  const doc = await couch.get(import.meta.env.VITE_DB_DATA, idEvento)
+  if (imagenPortada) doc.imagen_portada = imagenPortada
+  doc.imagenes_extra = imagenesExtra
+  doc.fecha_actualizacion = new Date().toISOString()
+  await couch.put(import.meta.env.VITE_DB_DATA, doc)
 }
 
 function limpiarErrores() {
@@ -527,11 +696,14 @@ function validarPaso2() {
 }
 
 function validarPaso3() {
-  if (!form.departamento) errors.departamento = 'No se pudo obtener el departamento de la alcaldía'
-  if (!form.municipio) errors.municipio = 'No se pudo obtener el municipio de la alcaldía'
-  if (!form.distrito) errors.distrito = 'Selecciona el distrito donde será el evento'
-  if (form.lat === null || form.lng === null) {
-    errors.ubicacion = 'Selecciona una ubicación en el mapa'
+  if (form.tipo_ubicacion === 'sitio' && !form.sitio_asociado) {
+    errors.ubicacion = 'Selecciona un sitio'
+  }
+  if (form.tipo_ubicacion !== 'sitio' && !form.distrito) {
+    errors.distrito = 'Selecciona el distrito'
+  }
+  if (form.tipo_ubicacion !== 'sitio' && (form.lat === null || form.lng === null)) {
+    errors.ubicacion = 'Selecciona una ubicación en el mapa o usa tu ubicación actual'
   }
 }
 
@@ -571,17 +743,17 @@ async function guardar() {
       descripcion: form.descripcion,
       categoria: form.categoria,
       costo: form.costo || 0,
-      organizador: auth.user.detalles?.detalle_alcaldia?.nombre_institucional || form.organizador,
+      organizador: form.organizador,
       contacto_organizador: form.contacto_organizador,
       enlace_compra: form.enlace_compra,
       fecha_inicio: new Date(form.fecha_inicio).toISOString(),
       fecha_fin: new Date(form.fecha_fin).toISOString(),
       departamento: form.departamento,
       municipio: form.municipio,
-      distrito: distritoSeleccionado.value,
+      distrito: buildDistritoObject(),
       direccion: form.direccion,
-      localizacion: { lat: Number(form.lat), lng: Number(form.lng) },
-      estado: 'activo', // siempre se publica
+      localizacion: {},
+      estado: 'activo',
       alcaldia: {
         _id: auth.user._id,
         nombre_institucional: auth.user.detalles?.detalle_alcaldia?.nombre_institucional || '',
@@ -592,9 +764,31 @@ async function guardar() {
       fecha_actualizacion: new Date().toISOString(),
     }
 
+    if (form.tipo_ubicacion === 'sitio' && form.sitio_asociado) {
+      const sitio = sitiosDisponibles.value.find((s) => s._id === form.sitio_asociado)
+      if (sitio) {
+        eventoData.sitio_asociado = form.sitio_asociado
+        eventoData.localizacion = {
+          lat: Number(sitio.localizacion?.lat),
+          lng: Number(sitio.localizacion?.lng),
+        }
+        eventoData.departamento = sitio.departamento || form.departamento
+        eventoData.municipio = sitio.municipio || form.municipio
+        eventoData.distrito =
+          typeof sitio.distrito === 'object'
+            ? sitio.distrito
+            : buildDistritoObject(sitio.distrito || form.distrito)
+        eventoData.direccion = sitio.direccion || sitio.localizacion?.direccion || form.direccion
+      }
+    } else {
+      eventoData.localizacion = { lat: Number(form.lat), lng: Number(form.lng) }
+      delete eventoData.sitio_asociado
+    }
+
     let idEvento
     if (isEdit.value) {
       const doc = await couch.get(import.meta.env.VITE_DB_DATA, props.evento._id)
+      delete doc.precio
       Object.assign(doc, eventoData)
       await couch.put(import.meta.env.VITE_DB_DATA, doc)
       idEvento = doc._id
@@ -602,6 +796,10 @@ async function guardar() {
       const response = await couch.post(import.meta.env.VITE_DB_DATA, eventoData)
       idEvento = response.id
     }
+
+    const imagenPortadaFinal = portadaFile.value
+      ? portadaFile.value.name
+      : props.evento?.imagen_portada || ''
 
     if (portadaFile.value) {
       await couch.uploadEntityImage(
@@ -611,9 +809,17 @@ async function guardar() {
       )
     }
 
-    for (const file of imagenesExtrasFiles.value || []) {
-      await couch.uploadEntityImage({ _id: idEvento, tipo: 'evento' }, 'imagenes_extra', file)
+    const imagenesExtraFinales = []
+    for (const img of previewsExtras.value) {
+      if (img.isNew && img.file) {
+        await couch.uploadEntityImage({ _id: idEvento, tipo: 'evento' }, 'imagenes_extra', img.file)
+        imagenesExtraFinales.push(img.file.name)
+      } else if (img.name) {
+        imagenesExtraFinales.push(img.name)
+      }
     }
+
+    await actualizarReferenciasImagenes(idEvento, imagenPortadaFinal, imagenesExtraFinales)
 
     emit('saved')
     dialogVisible.value = false
@@ -770,6 +976,10 @@ async function guardar() {
   color: white;
 }
 
+.event-map-picker :deep(.q-btn) {
+  display: none !important;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -778,34 +988,6 @@ async function guardar() {
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-@media (max-width: 600px) {
-  .wizard-card {
-    width: 100vw;
-    max-width: 100vw;
-    height: 100vh;
-    max-height: 100vh;
-    border-radius: 0;
-  }
-
-  .wizard-header {
-    padding: 16px 18px;
-  }
-
-  .progress-wrapper {
-    padding: 14px 18px 8px;
-  }
-
-  .wizard-body {
-    padding: 12px 18px 16px;
-  }
-
-  .extra-add,
-  .extra-preview {
-    width: 104px;
-    height: 62px;
   }
 }
 </style>

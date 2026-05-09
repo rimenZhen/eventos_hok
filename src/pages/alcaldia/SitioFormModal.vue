@@ -23,7 +23,6 @@
       </div>
 
       <q-card-section class="wizard-body scroll">
-        <!-- Paso 1 -->
         <section v-if="currentStep === 1" class="step-content">
           <div class="row q-col-gutter-md">
             <div class="col-12">
@@ -79,7 +78,7 @@
             <div class="col-12">
               <div class="field-label">
                 <q-icon name="photo_camera" />
-                Fotos del sitio {{ isEdit ? '' : '*' }}
+                Imagen principal {{ isEdit ? '' : '*' }}
               </div>
 
               <input
@@ -113,10 +112,53 @@
                 {{ errors.imagen_portada }}
               </div>
             </div>
+
+            <div class="col-12">
+              <div class="field-label">Imágenes adicionales (opcional)</div>
+              <div class="text-caption text-grey-7 q-mb-xs">
+                Puedes agregar hasta {{ MAX_EXTRA_IMAGES }} imágenes adicionales. Actualmente:
+                {{ previewsExtras.length }}/{{ MAX_EXTRA_IMAGES }}
+              </div>
+
+              <input
+                ref="extrasInput"
+                type="file"
+                accept="image/*"
+                multiple
+                class="hidden-input"
+                @change="onExtrasSelected"
+              />
+
+              <div class="extras-row">
+                <div
+                  v-for="(img, idx) in previewsExtras"
+                  :key="idx"
+                  class="extra-preview relative-position"
+                >
+                  <q-img :src="img.src" class="fit rounded-borders" fit="cover" />
+                  <q-btn
+                    round
+                    dense
+                    color="negative"
+                    text-color="white"
+                    icon="close"
+                    size="xs"
+                    class="absolute-top-right"
+                    @click.stop="removeExtraImage(idx)"
+                  />
+                </div>
+                <div
+                  v-if="previewsExtras.length < MAX_EXTRA_IMAGES"
+                  class="extra-add"
+                  @click="extrasInput?.click()"
+                >
+                  <q-icon name="add" size="28px" color="grey-6" />
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
-        <!-- Paso 2 -->
         <section v-if="currentStep === 2" class="step-content">
           <div class="horarios-header">
             <div>
@@ -180,10 +222,13 @@
           </q-list>
         </section>
 
-        <!-- Paso 3 -->
         <section v-if="currentStep === 3" class="step-content">
           <div class="row q-col-gutter-md">
             <div class="col-12">
+              <div class="field-label">
+                <q-icon name="map" />
+                Selecciona la ubicación en el mapa *
+              </div>
               <MapLocationPicker
                 :latitude="form.lat"
                 :longitude="form.lng"
@@ -216,25 +261,30 @@
           </div>
         </section>
 
-        <!-- Paso 4: Resumen (sin toggle de publicación) -->
         <section v-if="currentStep === 4" class="step-content">
           <div class="text-h6 q-mb-sm">Resumen del sitio</div>
           <q-list dense bordered class="rounded-borders q-mb-md">
-            <q-item>
-              <q-item-section>Nombre: {{ form.nombre || '---' }}</q-item-section>
-            </q-item>
-            <q-item>
-              <q-item-section>Descripción: {{ form.descripcion || '---' }}</q-item-section>
-            </q-item>
-            <q-item>
-              <q-item-section>Precio: {{ Number(form.costo || 0).toFixed(2) }} USD</q-item-section>
-            </q-item>
-            <q-item>
-              <q-item-section>Distrito: {{ distritoSeleccionado?.nombre || '---' }}</q-item-section>
-            </q-item>
-            <q-item>
-              <q-item-section>Dirección detallada: {{ form.direccion || '---' }}</q-item-section>
-            </q-item>
+            <q-item
+              ><q-item-section>Nombre: {{ form.nombre || '---' }}</q-item-section></q-item
+            >
+            <q-item
+              ><q-item-section>Descripción: {{ form.descripcion || '---' }}</q-item-section></q-item
+            >
+            <q-item
+              ><q-item-section
+                >Precio: {{ Number(form.costo || 0).toFixed(2) }} USD</q-item-section
+              ></q-item
+            >
+            <q-item
+              ><q-item-section
+                >Distrito: {{ distritoSeleccionado?.nombre || '---' }}</q-item-section
+              ></q-item
+            >
+            <q-item
+              ><q-item-section
+                >Dirección detallada: {{ form.direccion || '---' }}</q-item-section
+              ></q-item
+            >
           </q-list>
           <div class="text-caption text-grey-7">
             El sitio se publicará automáticamente al guardar.
@@ -310,36 +360,36 @@ const currentStepTitle = computed(
 )
 
 const saving = ref(false)
+const MAX_EXTRA_IMAGES = 5
 const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 
 const form = reactive(getEmptyForm())
 const portadaFile = ref(null)
 const portadaInput = ref(null)
+const extrasInput = ref(null)
 const previewPortada = ref(null)
+const previewsExtras = ref([])
 const errors = reactive({})
-const distritosCatalogo = ref([])
+
+const detalleAlcaldia = computed(() => auth.user?.detalles?.detalle_alcaldia || {})
 
 const categoriasOptions = computed(() =>
   (configStore.categoriasSitios || []).map((c) => ({ label: c.nombre, value: c.clave })),
 )
 
-const distritosFuente = computed(() =>
-  (configStore.distritos || []).length > 0 ? configStore.distritos : distritosCatalogo.value,
-)
+const distritosOptions = computed(() => {
+  const alcaldiaClave = form.municipio || detalleAlcaldia.value.municipio
+  if (!alcaldiaClave) return []
 
-const distritosOptions = computed(() =>
-  (distritosFuente.value || [])
-    .filter((distrito) => distrito.activo !== false && distrito.alcaldia === form.municipio)
-    .map((distrito) => ({ label: distrito.nombre, value: distrito.clave })),
-)
+  return (configStore.distritos || [])
+    .filter((d) => d.activo !== false && d.alcaldia === alcaldiaClave)
+    .map((d) => ({ label: d.nombre, value: d.clave }))
+})
 
 const distritoSeleccionado = computed(() => {
-  const distrito = (distritosFuente.value || []).find((item) => item.clave === form.distrito)
-  if (!distrito) return null
-  return {
-    clave: distrito.clave,
-    nombre: distrito.nombre,
-  }
+  const clave = typeof form.distrito === 'object' ? form.distrito?.clave : form.distrito
+  const distrito = (configStore.distritos || []).find((d) => d.clave === clave)
+  return distrito ? { clave: distrito.clave, nombre: distrito.nombre } : null
 })
 
 watch(
@@ -350,20 +400,6 @@ watch(
   },
 )
 
-async function cargarDistritosFallback() {
-  try {
-    const result = await couch.find(import.meta.env.VITE_DB_DATA, { type: 'configuracion' })
-    const distritosDoc = (result.docs || []).find((doc) => {
-      const descripcion = doc.descripcion?.toLowerCase() || ''
-      return descripcion.includes('distrito') || descripcion.includes('distritos')
-    })
-    distritosCatalogo.value = distritosDoc?.items?.filter((item) => item.activo !== false) || []
-  } catch (error) {
-    console.error(error)
-    distritosCatalogo.value = []
-  }
-}
-
 async function prepararFormulario() {
   limpiarErrores()
   resetForm()
@@ -372,18 +408,21 @@ async function prepararFormulario() {
   if (
     (configStore.categoriasSitios || []).length === 0 ||
     (configStore.distritos || []).length === 0
-  )
+  ) {
     await configStore.fetchCatalogos()
-  if ((configStore.distritos || []).length === 0) await cargarDistritosFallback()
-
-  if (!isEdit.value) {
-    const detalle = auth.user?.detalles?.detalle_alcaldia
-    if (detalle?.departamento) form.departamento = detalle.departamento
-    if (detalle?.municipio) form.municipio = detalle.municipio
   }
 
+  aplicarDatosAlcaldia()
+
   if (props.sitio) cargarSitio(props.sitio)
+  aplicarDatosAlcaldia()
   inicializarHorario()
+}
+
+function aplicarDatosAlcaldia() {
+  const detalle = detalleAlcaldia.value
+  form.departamento = detalle.departamento || form.departamento || ''
+  form.municipio = detalle.municipio || form.municipio || ''
 }
 
 function getEmptyForm() {
@@ -392,11 +431,11 @@ function getEmptyForm() {
     categoria: null,
     descripcion: '',
     costo: 0,
+    distrito: null,
     lat: null,
     lng: null,
     departamento: '',
     municipio: '',
-    distrito: null,
     direccion: '',
     horario: {},
   }
@@ -406,38 +445,39 @@ function resetForm() {
   Object.assign(form, getEmptyForm())
   portadaFile.value = null
   previewPortada.value = null
+  previewsExtras.value = []
   inicializarHorario()
 }
 
 function inicializarHorario() {
   diasSemana.forEach((dia) => {
     if (!form.horario[dia]) {
-      form.horario[dia] = { apertura: '09:00', cierre: '18:00', cerrado: true }
+      form.horario[dia] = { apertura: '09:00', cierre: '18:00', cerrado: false }
     }
   })
 }
 
 function cargarSitio(s) {
-  const dep = typeof s.departamento === 'object' ? s.departamento.value : s.departamento
-  const mun =
-    typeof s.municipio === 'object' ? s.municipio.nombre || s.municipio.value : s.municipio
-  const distrito =
-    typeof s.distrito === 'object' ? s.distrito.clave || s.distrito.value : s.distrito
-
   Object.assign(form, {
     nombre: s.nombre || '',
     categoria: typeof s.categoria === 'object' ? s.categoria.value : s.categoria || null,
     descripcion: s.descripcion || '',
-    costo: s.costo ?? s.precio_entrada ?? 0,
+    costo: s.costo ?? s.precio_entrada ?? s.precio ?? 0,
+    distrito: typeof s.distrito === 'object' ? s.distrito.clave : s.distrito || null,
     lat: s.localizacion?.lat ?? null,
     lng: s.localizacion?.lng ?? null,
-    departamento: dep || '',
-    municipio: mun || '',
-    distrito: distrito || null,
+    departamento: s.departamento || '',
+    municipio: s.municipio || '',
     direccion: s.direccion || s.localizacion?.direccion || '',
     horario: s.horario ? { ...s.horario } : {},
   })
   previewPortada.value = s.imagen_portada || null
+  previewsExtras.value = (s.imagenes_extra || []).map((name) => ({
+    src: name,
+    name,
+    file: null,
+    isNew: false,
+  }))
 }
 
 function onPortadaSelected(event) {
@@ -451,9 +491,48 @@ function onPortadaSelected(event) {
   reader.readAsDataURL(file)
 }
 
-function actualizarUbicacion({ lat, lng }) {
+function onExtrasSelected(event) {
+  const nuevos = Array.from(event.target.files || [])
+  const disponibles = MAX_EXTRA_IMAGES - previewsExtras.value.length
+  const seleccionados = nuevos.slice(0, disponibles)
+
+  seleccionados.forEach((file) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      previewsExtras.value.push({
+        src: e.target.result,
+        name: file.name,
+        file,
+        isNew: true,
+      })
+    }
+    reader.readAsDataURL(file)
+  })
+
+  if (extrasInput.value) extrasInput.value.value = ''
+}
+
+function removeExtraImage(idx) {
+  previewsExtras.value = previewsExtras.value.filter((_, i) => i !== idx)
+}
+
+function actualizarUbicacion({ lat, lng, direccion }) {
   form.lat = lat
   form.lng = lng
+  if (direccion && !form.direccion) form.direccion = direccion
+}
+
+function buildDistritoObject(clave = form.distrito) {
+  const distrito = (configStore.distritos || []).find((d) => d.clave === clave)
+  return distrito ? { clave: distrito.clave, nombre: distrito.nombre } : null
+}
+
+async function actualizarReferenciasImagenes(idSitio, imagenPortada, imagenesExtra) {
+  const doc = await couch.get(import.meta.env.VITE_DB_DATA, idSitio)
+  if (imagenPortada) doc.imagen_portada = imagenPortada
+  doc.imagenes_extra = imagenesExtra
+  doc.fecha_actualizacion = new Date().toISOString()
+  await couch.put(import.meta.env.VITE_DB_DATA, doc)
 }
 
 function limpiarErrores() {
@@ -470,11 +549,10 @@ function validarPaso1() {
 }
 
 function validarPaso3() {
-  if (!form.departamento) errors.departamento = 'No se pudo obtener el departamento de la alcaldía'
-  if (!form.municipio) errors.municipio = 'No se pudo obtener el municipio de la alcaldía'
-  if (!form.distrito) errors.distrito = 'Selecciona el distrito donde se ubica el sitio'
-  if (form.lat === null || form.lng === null)
+  if (!form.distrito) errors.distrito = 'Selecciona el distrito'
+  if (form.lat === null || form.lng === null) {
     errors.ubicacion = 'Selecciona una ubicación en el mapa'
+  }
 }
 
 function validarPasoActual() {
@@ -514,10 +592,10 @@ async function guardar() {
       localizacion: { lat: Number(form.lat), lng: Number(form.lng) },
       departamento: form.departamento,
       municipio: form.municipio,
-      distrito: distritoSeleccionado.value,
+      distrito: buildDistritoObject(),
       direccion: form.direccion,
       horario: form.horario,
-      estado: 'activo', // siempre se publica
+      estado: 'activo',
       alcaldia: {
         _id: auth.user._id,
         nombre_institucional: auth.user.detalles?.detalle_alcaldia?.nombre_institucional || '',
@@ -531,6 +609,8 @@ async function guardar() {
     let idSitio
     if (isEdit.value) {
       const doc = await couch.get(import.meta.env.VITE_DB_DATA, props.sitio._id)
+      delete doc.precio
+      delete doc.precio_entrada
       Object.assign(doc, sitioData)
       await couch.put(import.meta.env.VITE_DB_DATA, doc)
       idSitio = doc._id
@@ -539,6 +619,10 @@ async function guardar() {
       idSitio = response.id
     }
 
+    const imagenPortadaFinal = portadaFile.value
+      ? portadaFile.value.name
+      : props.sitio?.imagen_portada || ''
+
     if (portadaFile.value) {
       await couch.uploadEntityImage(
         { _id: idSitio, tipo: 'sitio' },
@@ -546,6 +630,18 @@ async function guardar() {
         portadaFile.value,
       )
     }
+
+    const imagenesExtraFinales = []
+    for (const img of previewsExtras.value) {
+      if (img.isNew && img.file) {
+        await couch.uploadEntityImage({ _id: idSitio, tipo: 'sitio' }, 'imagenes_extra', img.file)
+        imagenesExtraFinales.push(img.file.name)
+      } else if (img.name) {
+        imagenesExtraFinales.push(img.name)
+      }
+    }
+
+    await actualizarReferenciasImagenes(idSitio, imagenPortadaFinal, imagenesExtraFinales)
 
     emit('saved')
     dialogVisible.value = false
@@ -623,8 +719,8 @@ async function guardar() {
 }
 
 .upload-zone {
-  min-height: 145px;
-  border: 2px dashed #cbd3df;
+  min-height: 135px;
+  border: 2px dashed #b9c8dd;
   border-radius: 14px;
   display: flex;
   flex-direction: column;
@@ -638,12 +734,12 @@ async function guardar() {
     background 0.2s ease;
 }
 
-.upload-zone:hover {
-  background: #fafafa;
+.sitio-upload {
+  border-color: #ff9800;
 }
 
-.sitio-upload:hover {
-  border-color: #ff9800;
+.upload-zone:hover {
+  background: #fffaf2;
 }
 
 .upload-zone.has-error {
@@ -661,14 +757,53 @@ async function guardar() {
 }
 
 .upload-title span {
-  color: #fb8c00;
-  font-weight: 600;
+  color: #ff9800;
+  font-weight: 700;
 }
 
 .upload-hint {
   color: #9aa4b4;
   font-size: 12px;
   margin-top: 6px;
+}
+
+.extras-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.extra-add,
+.extra-preview {
+  width: 116px;
+  height: 66px;
+  border-radius: 12px;
+}
+
+.extra-add {
+  border: 2px dashed #cbd3df;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: #fff;
+}
+
+.extra-add:hover {
+  border-color: #ff9800;
+  background: #fffaf2;
+}
+
+.horario-top-row,
+.horario-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.hora-input {
+  min-width: 150px;
 }
 
 .wizard-actions {
@@ -680,50 +815,6 @@ async function guardar() {
   color: white;
 }
 
-.horarios-header {
-  margin-bottom: 14px;
-}
-
-.horarios-list {
-  overflow: hidden;
-}
-
-.horario-item {
-  align-items: flex-start;
-  padding: 18px 16px;
-}
-
-.dia-section {
-  max-width: 130px;
-  padding-top: 8px;
-}
-
-.horario-section {
-  min-width: 0;
-}
-
-.horario-top-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-}
-
-.horario-inputs {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.hora-input {
-  width: 180px;
-}
-
-.horario-cerrado-text {
-  margin-top: 4px;
-}
-
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -732,47 +823,6 @@ async function guardar() {
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-@media (max-width: 600px) {
-  .wizard-card {
-    width: 100vw;
-    max-width: 100vw;
-    height: 100vh;
-    max-height: 100vh;
-    border-radius: 0;
-  }
-
-  .wizard-header {
-    padding: 16px 18px;
-  }
-
-  .progress-wrapper {
-    padding: 14px 18px 8px;
-  }
-
-  .wizard-body {
-    padding: 12px 18px 16px;
-  }
-
-  .dia-section {
-    max-width: none;
-    flex-basis: 100%;
-    margin-bottom: 6px;
-    padding-top: 0;
-  }
-
-  .horario-top-row {
-    gap: 8px;
-  }
-
-  .horario-inputs {
-    flex-direction: column;
-  }
-
-  .hora-input {
-    width: 100%;
   }
 }
 </style>
