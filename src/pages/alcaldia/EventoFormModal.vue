@@ -1,5 +1,5 @@
 <template>
-  <q-dialog v-model="dialogVisible" persistent>
+  <q-dialog v-model="dialogVisible">
     <q-card class="wizard-card column no-wrap">
       <q-card-section class="wizard-header evento-header row items-center no-wrap">
         <q-icon name="event" size="28px" class="q-mr-md" />
@@ -10,7 +10,15 @@
           <div class="text-caption">Paso {{ currentStep }} de 4: {{ currentStepTitle }}</div>
         </div>
         <q-space />
-        <q-btn icon="close" flat dense round class="close-btn" v-close-popup />
+        <q-btn
+          icon="close"
+          flat
+          dense
+          round
+          class="close-btn"
+          aria-label="Cerrar formulario"
+          @click.stop="cerrarFormulario"
+        />
       </q-card-section>
 
       <div class="progress-wrapper">
@@ -290,39 +298,92 @@
         </section>
 
         <section v-if="currentStep === 4" class="step-content">
-          <div class="text-h6 q-mb-sm">Resumen del evento</div>
-          <q-list dense bordered class="rounded-borders q-mb-md">
-            <q-item
-              ><q-item-section>Nombre: {{ form.titulo || '---' }}</q-item-section></q-item
-            >
-            <q-item
-              ><q-item-section>Descripción: {{ form.descripcion || '---' }}</q-item-section></q-item
-            >
-            <q-item
-              ><q-item-section
-                >Precio: {{ Number(form.costo || 0).toFixed(2) }} USD</q-item-section
-              ></q-item
-            >
-            <q-item
-              ><q-item-section
-                >Distrito: {{ distritoSeleccionado?.nombre || '---' }}</q-item-section
-              ></q-item
-            >
-            <q-item
-              ><q-item-section
-                >Dirección detallada: {{ form.direccion || '---' }}</q-item-section
-              ></q-item
-            >
-          </q-list>
-          <div class="text-caption text-grey-7">
-            El evento se publicará automáticamente al guardar.
+          <div class="summary-hero evento-summary-hero">
+            <div class="summary-hero-content">
+              <q-chip dense color="white" text-color="primary" icon="visibility">
+                Vista previa de publicación
+              </q-chip>
+              <div class="summary-title">{{ form.titulo || 'Evento sin nombre' }}</div>
+              <div class="summary-description">
+                {{
+                  form.descripcion ||
+                  'Agrega una descripción para que las personas conozcan mejor el evento.'
+                }}
+              </div>
+            </div>
+
+            <q-img v-if="previewPortada" :src="previewPortada" class="summary-cover" fit="cover" />
+            <div v-else class="summary-cover summary-cover-empty">
+              <q-icon name="image" size="38px" />
+              <span>Sin portada</span>
+            </div>
           </div>
+
+          <div class="summary-grid q-mt-md">
+            <div class="summary-card highlight-card">
+              <q-icon name="payments" />
+              <div>
+                <span>Costo</span>
+                <strong>{{ Number(form.costo || 0).toFixed(2) }} USD</strong>
+              </div>
+            </div>
+
+            <div class="summary-card">
+              <q-icon name="category" />
+              <div>
+                <span>Categoría</span>
+                <strong>{{ categoriaSeleccionada?.label || '---' }}</strong>
+              </div>
+            </div>
+
+            <div class="summary-card">
+              <q-icon name="event_available" />
+              <div>
+                <span>Inicio</span>
+                <strong>{{ form.fecha_inicio || '---' }}</strong>
+              </div>
+            </div>
+
+            <div class="summary-card">
+              <q-icon name="event_busy" />
+              <div>
+                <span>Finaliza</span>
+                <strong>{{ form.fecha_fin || '---' }}</strong>
+              </div>
+            </div>
+
+            <div class="summary-card summary-card-wide">
+              <q-icon name="place" />
+              <div>
+                <span>Ubicación</span>
+                <strong>{{ distritoSeleccionado?.nombre || 'Distrito sin seleccionar' }}</strong>
+                <small>{{ form.direccion || 'Sin dirección detallada' }}</small>
+              </div>
+            </div>
+
+            <div class="summary-card summary-card-wide">
+              <q-icon name="account_balance" />
+              <div>
+                <span>Organizador</span>
+                <strong>{{ form.organizador || '---' }}</strong>
+                <small>{{ form.contacto_organizador || 'Sin contacto registrado' }}</small>
+              </div>
+            </div>
+          </div>
+
+          <q-banner rounded class="publish-banner evento-publish-banner q-mt-md">
+            <template #avatar>
+              <q-icon name="campaign" />
+            </template>
+            El evento se publicará automáticamente al guardar. Revisa que la información sea
+            correcta antes de confirmar.
+          </q-banner>
         </section>
       </q-card-section>
 
       <q-separator />
       <q-card-actions class="wizard-actions bg-white q-pa-md">
-        <q-btn flat label="Cancelar" v-close-popup />
+        <q-btn flat label="Cancelar" @click.stop="cerrarFormulario" />
         <q-space />
         <q-btn
           v-if="currentStep > 1"
@@ -378,6 +439,11 @@ const dialogVisible = computed({
 })
 const isEdit = computed(() => !!props.evento)
 
+function cerrarFormulario() {
+  if (saving.value) return
+  dialogVisible.value = false
+}
+
 const steps = [
   { number: 1, title: 'Datos básicos' },
   { number: 2, title: 'Fecha y horario' },
@@ -406,6 +472,10 @@ const detalleAlcaldia = computed(() => auth.user?.detalles?.detalle_alcaldia || 
 
 const categoriasOptions = computed(() =>
   (configStore.categoriasEventos || []).map((c) => ({ label: c.nombre, value: c.clave })),
+)
+
+const categoriaSeleccionada = computed(() =>
+  categoriasOptions.value.find((cat) => cat.value === form.categoria),
 )
 
 const distritosOptions = computed(() => {
@@ -833,61 +903,92 @@ async function guardar() {
 
 <style scoped>
 .wizard-card {
-  width: min(680px, 94vw);
-  height: min(92vh, 760px);
+  width: min(760px, 96vw);
+  height: min(92vh, 820px);
   max-height: 92vh;
-  border-radius: 14px;
+  border-radius: 24px;
   overflow: hidden;
+  box-shadow: 0 24px 70px rgba(31, 58, 94, 0.22);
 }
 
 .wizard-header {
-  min-height: 78px;
-  padding: 18px 24px;
+  min-height: 92px;
+  padding: 22px 26px;
+  position: relative;
+  overflow: hidden;
+}
+
+.wizard-header > * {
+  position: relative;
+  z-index: 1;
+}
+
+.wizard-header::after {
+  content: '';
+  position: absolute;
+  right: -50px;
+  top: -70px;
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .evento-header {
-  background: #2f83f6;
+  background: linear-gradient(135deg, #1769e8 0%, #2f83f6 52%, #64b5ff 100%);
   color: white;
 }
 
 .close-btn {
   background: rgba(255, 255, 255, 0.22);
   color: white;
+  backdrop-filter: blur(8px);
+  cursor: pointer;
 }
 
 .progress-wrapper {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 5px;
-  padding: 16px 24px 10px;
-  background: white;
+  gap: 7px;
+  padding: 18px 26px 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
 }
 
 .progress-segment {
-  height: 5px;
+  height: 7px;
   border-radius: 999px;
-  background: #e1e5eb;
+  background: #dfe7f3;
+  overflow: hidden;
 }
 
 .progress-segment.active {
-  background: #2f83f6;
+  background: linear-gradient(90deg, #1769e8, #5bb7ff);
+  box-shadow: 0 4px 10px rgba(47, 131, 246, 0.26);
 }
 
 .wizard-body {
   flex: 1 1 auto;
-  padding: 14px 24px 18px;
+  padding: 18px 26px 22px;
   min-height: 0;
+  background: #f7f9fd;
 }
 
 .step-content {
-  animation: fadeIn 0.15s ease-in-out;
+  animation: fadeIn 0.18s ease-in-out;
+}
+
+:deep(.q-field--outlined .q-field__control) {
+  border-radius: 14px;
+  background: white;
 }
 
 .field-label {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-weight: 600;
+  gap: 7px;
+  font-weight: 700;
   color: #26364a;
   margin-bottom: 8px;
 }
@@ -897,18 +998,20 @@ async function guardar() {
 }
 
 .upload-zone {
-  min-height: 135px;
+  min-height: 155px;
   border: 2px dashed #b9c8dd;
-  border-radius: 14px;
+  border-radius: 20px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   cursor: pointer;
   overflow: hidden;
-  background: #fff;
+  background: linear-gradient(135deg, #ffffff 0%, #f4f8ff 100%);
   transition:
+    transform 0.2s ease,
     border-color 0.2s ease,
+    box-shadow 0.2s ease,
     background 0.2s ease;
 }
 
@@ -917,7 +1020,9 @@ async function guardar() {
 }
 
 .upload-zone:hover {
+  transform: translateY(-2px);
   background: #f8fbff;
+  box-shadow: 0 12px 28px rgba(47, 131, 246, 0.16);
 }
 
 .upload-zone.has-error {
@@ -926,16 +1031,17 @@ async function guardar() {
 
 .upload-preview {
   width: 100%;
-  height: 185px;
+  height: 210px;
 }
 
 .upload-title {
-  color: #7b8495;
+  color: #2d4059;
   margin-top: 10px;
+  font-weight: 700;
 }
 
 .upload-hint {
-  color: #9aa4b4;
+  color: #7e8ca1;
   font-size: 12px;
   margin-top: 6px;
 }
@@ -943,14 +1049,19 @@ async function guardar() {
 .extras-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
 }
 
 .extra-add,
 .extra-preview {
-  width: 116px;
-  height: 66px;
-  border-radius: 12px;
+  width: 124px;
+  height: 74px;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.extra-preview {
+  box-shadow: 0 8px 18px rgba(31, 58, 94, 0.14);
 }
 
 .extra-add {
@@ -967,17 +1078,167 @@ async function guardar() {
   background: #f8fbff;
 }
 
+.summary-hero {
+  min-height: 220px;
+  border-radius: 24px;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 1.25fr 0.75fr;
+  box-shadow: 0 18px 40px rgba(31, 58, 94, 0.18);
+}
+
+.evento-summary-hero {
+  background: linear-gradient(135deg, #1769e8, #2f83f6 55%, #76c7ff);
+}
+
+.summary-hero-content {
+  padding: 24px;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+}
+
+.summary-title {
+  font-size: clamp(22px, 4vw, 32px);
+  line-height: 1.08;
+  font-weight: 900;
+}
+
+.summary-description {
+  font-size: 14px;
+  line-height: 1.55;
+  opacity: 0.95;
+  display: -webkit-box;
+  line-clamp: 4;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.summary-cover {
+  min-height: 220px;
+  height: 100%;
+}
+
+.summary-cover-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.16);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.summary-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 16px;
+  border-radius: 18px;
+  background: white;
+  box-shadow: 0 10px 26px rgba(31, 58, 94, 0.08);
+  border: 1px solid #edf1f7;
+}
+
+.summary-card-wide {
+  grid-column: span 2;
+}
+
+.summary-card > .q-icon {
+  font-size: 26px;
+  color: #2f83f6;
+  background: #eaf3ff;
+  padding: 8px;
+  border-radius: 14px;
+}
+
+.summary-card span {
+  display: block;
+  color: #7c8798;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.summary-card strong {
+  display: block;
+  color: #223047;
+  font-size: 15px;
+  margin-top: 2px;
+}
+
+.summary-card small {
+  display: block;
+  color: #748094;
+  margin-top: 4px;
+  line-height: 1.35;
+}
+
+.highlight-card {
+  border-color: rgba(47, 131, 246, 0.28);
+}
+
+.publish-banner {
+  border: 1px solid rgba(47, 131, 246, 0.2);
+  font-weight: 600;
+}
+
+.evento-publish-banner {
+  background: #edf6ff;
+  color: #1f4f8f;
+}
+
 .wizard-actions {
   flex-wrap: nowrap;
+  background: #ffffff;
+  box-shadow: 0 -10px 24px rgba(31, 58, 94, 0.07);
 }
 
 .evento-btn {
-  background: #2f83f6;
+  background: linear-gradient(135deg, #1769e8, #2f83f6);
   color: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 18px rgba(47, 131, 246, 0.26);
 }
 
 .event-map-picker :deep(.q-btn) {
   display: none !important;
+}
+
+@media (max-width: 620px) {
+  .wizard-card {
+    width: 96vw;
+    border-radius: 18px;
+  }
+
+  .summary-hero,
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-card-wide {
+    grid-column: span 1;
+  }
+
+  .summary-cover {
+    min-height: 160px;
+  }
+
+  .wizard-actions {
+    gap: 6px;
+  }
 }
 
 @keyframes fadeIn {

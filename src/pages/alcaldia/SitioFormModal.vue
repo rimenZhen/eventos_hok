@@ -1,5 +1,5 @@
 <template>
-  <q-dialog v-model="dialogVisible" persistent>
+  <q-dialog v-model="dialogVisible">
     <q-card class="wizard-card column no-wrap">
       <q-card-section class="wizard-header sitio-header row items-center no-wrap">
         <q-icon name="place" size="28px" class="q-mr-md" />
@@ -10,7 +10,15 @@
           <div class="text-caption">Paso {{ currentStep }} de 4: {{ currentStepTitle }}</div>
         </div>
         <q-space />
-        <q-btn icon="close" flat dense round class="close-btn" v-close-popup />
+        <q-btn
+          icon="close"
+          flat
+          dense
+          round
+          class="close-btn"
+          aria-label="Cerrar formulario"
+          @click.stop="cerrarFormulario"
+        />
       </q-card-section>
 
       <div class="progress-wrapper">
@@ -262,39 +270,92 @@
         </section>
 
         <section v-if="currentStep === 4" class="step-content">
-          <div class="text-h6 q-mb-sm">Resumen del sitio</div>
-          <q-list dense bordered class="rounded-borders q-mb-md">
-            <q-item
-              ><q-item-section>Nombre: {{ form.nombre || '---' }}</q-item-section></q-item
-            >
-            <q-item
-              ><q-item-section>Descripción: {{ form.descripcion || '---' }}</q-item-section></q-item
-            >
-            <q-item
-              ><q-item-section
-                >Precio: {{ Number(form.costo || 0).toFixed(2) }} USD</q-item-section
-              ></q-item
-            >
-            <q-item
-              ><q-item-section
-                >Distrito: {{ distritoSeleccionado?.nombre || '---' }}</q-item-section
-              ></q-item
-            >
-            <q-item
-              ><q-item-section
-                >Dirección detallada: {{ form.direccion || '---' }}</q-item-section
-              ></q-item
-            >
-          </q-list>
-          <div class="text-caption text-grey-7">
-            El sitio se publicará automáticamente al guardar.
+          <div class="summary-hero sitio-summary-hero">
+            <div class="summary-hero-content">
+              <q-chip dense color="white" text-color="orange-9" icon="visibility">
+                Vista previa de publicación
+              </q-chip>
+              <div class="summary-title">{{ form.nombre || 'Sitio sin nombre' }}</div>
+              <div class="summary-description">
+                {{
+                  form.descripcion ||
+                  'Agrega una descripción para que los visitantes conozcan mejor este sitio.'
+                }}
+              </div>
+            </div>
+
+            <q-img v-if="previewPortada" :src="previewPortada" class="summary-cover" fit="cover" />
+            <div v-else class="summary-cover summary-cover-empty">
+              <q-icon name="image" size="38px" />
+              <span>Sin portada</span>
+            </div>
           </div>
+
+          <div class="summary-grid q-mt-md">
+            <div class="summary-card highlight-card">
+              <q-icon name="payments" />
+              <div>
+                <span>Costo</span>
+                <strong>{{ Number(form.costo || 0).toFixed(2) }} USD</strong>
+              </div>
+            </div>
+
+            <div class="summary-card">
+              <q-icon name="category" />
+              <div>
+                <span>Categoría</span>
+                <strong>{{ categoriaSeleccionada?.label || '---' }}</strong>
+              </div>
+            </div>
+
+            <div class="summary-card">
+              <q-icon name="schedule" />
+              <div>
+                <span>Días abiertos</span>
+                <strong>{{ horariosAbiertos.length }} de {{ diasSemana.length }}</strong>
+              </div>
+            </div>
+
+            <div class="summary-card">
+              <q-icon name="photo_library" />
+              <div>
+                <span>Galería</span>
+                <strong>{{ previewsExtras.length }} imagen(es) extra</strong>
+              </div>
+            </div>
+
+            <div class="summary-card summary-card-wide">
+              <q-icon name="place" />
+              <div>
+                <span>Ubicación</span>
+                <strong>{{ distritoSeleccionado?.nombre || 'Distrito sin seleccionar' }}</strong>
+                <small>{{ form.direccion || 'Sin dirección detallada' }}</small>
+              </div>
+            </div>
+
+            <div class="summary-card summary-card-wide">
+              <q-icon name="access_time" />
+              <div>
+                <span>Horario visible</span>
+                <strong v-if="horariosAbiertos.length">{{ horariosAbiertos.join(', ') }}</strong>
+                <strong v-else>Todos los días aparecen cerrados</strong>
+              </div>
+            </div>
+          </div>
+
+          <q-banner rounded class="publish-banner sitio-publish-banner q-mt-md">
+            <template #avatar>
+              <q-icon name="campaign" />
+            </template>
+            El sitio se publicará automáticamente al guardar. Revisa ubicación, costo y horarios
+            antes de confirmar.
+          </q-banner>
         </section>
       </q-card-section>
 
       <q-separator />
       <q-card-actions class="wizard-actions bg-white q-pa-md">
-        <q-btn flat label="Cancelar" v-close-popup />
+        <q-btn flat label="Cancelar" @click.stop="cerrarFormulario" />
         <q-space />
         <q-btn
           v-if="currentStep > 1"
@@ -348,6 +409,11 @@ const dialogVisible = computed({
 })
 const isEdit = computed(() => !!props.sitio)
 
+function cerrarFormulario() {
+  if (saving.value) return
+  dialogVisible.value = false
+}
+
 const steps = [
   { number: 1, title: 'Identidad' },
   { number: 2, title: 'Horarios' },
@@ -375,6 +441,14 @@ const detalleAlcaldia = computed(() => auth.user?.detalles?.detalle_alcaldia || 
 
 const categoriasOptions = computed(() =>
   (configStore.categoriasSitios || []).map((c) => ({ label: c.nombre, value: c.clave })),
+)
+
+const categoriaSeleccionada = computed(() =>
+  categoriasOptions.value.find((cat) => cat.value === form.categoria),
+)
+
+const horariosAbiertos = computed(() =>
+  diasSemana.filter((dia) => form.horario?.[dia] && !form.horario[dia].cerrado),
 )
 
 const distritosOptions = computed(() => {
@@ -655,61 +729,91 @@ async function guardar() {
 
 <style scoped>
 .wizard-card {
-  width: min(680px, 94vw);
-  height: min(92vh, 760px);
+  width: min(760px, 96vw);
+  height: min(92vh, 820px);
   max-height: 92vh;
-  border-radius: 14px;
+  border-radius: 24px;
   overflow: hidden;
+  box-shadow: 0 24px 70px rgba(84, 55, 12, 0.2);
 }
 
 .wizard-header {
-  min-height: 78px;
-  padding: 18px 24px;
+  min-height: 92px;
+  padding: 22px 26px;
+  position: relative;
+  overflow: hidden;
+}
+
+.wizard-header > * {
+  position: relative;
+  z-index: 1;
+}
+
+.wizard-header::after {
+  content: '';
+  position: absolute;
+  right: -50px;
+  top: -70px;
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .sitio-header {
-  background: #ff9800;
+  background: linear-gradient(135deg, #e86d00 0%, #ff9800 55%, #ffc266 100%);
   color: white;
 }
 
 .close-btn {
   background: rgba(255, 255, 255, 0.22);
   color: white;
+  backdrop-filter: blur(8px);
+  cursor: pointer;
 }
 
 .progress-wrapper {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 5px;
-  padding: 16px 24px 10px;
-  background: white;
+  gap: 7px;
+  padding: 18px 26px 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #fff9f0 100%);
 }
 
 .progress-segment {
-  height: 5px;
+  height: 7px;
   border-radius: 999px;
-  background: #e1e5eb;
+  background: #eadfce;
 }
 
 .progress-segment.active {
-  background: #ff9800;
+  background: linear-gradient(90deg, #e86d00, #ffb338);
+  box-shadow: 0 4px 10px rgba(255, 152, 0, 0.26);
 }
 
 .wizard-body {
   flex: 1 1 auto;
-  padding: 14px 24px 18px;
+  padding: 18px 26px 22px;
   min-height: 0;
+  background: #fbf8f2;
 }
 
 .step-content {
-  animation: fadeIn 0.15s ease-in-out;
+  animation: fadeIn 0.18s ease-in-out;
+}
+
+:deep(.q-field--outlined .q-field__control) {
+  border-radius: 14px;
+  background: white;
 }
 
 .field-label {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-weight: 600;
+  gap: 7px;
+  font-weight: 700;
   color: #26364a;
   margin-bottom: 8px;
 }
@@ -719,18 +823,20 @@ async function guardar() {
 }
 
 .upload-zone {
-  min-height: 135px;
-  border: 2px dashed #b9c8dd;
-  border-radius: 14px;
+  min-height: 155px;
+  border: 2px dashed #d5bd95;
+  border-radius: 20px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   cursor: pointer;
   overflow: hidden;
-  background: #fff;
+  background: linear-gradient(135deg, #ffffff 0%, #fff8ec 100%);
   transition:
+    transform 0.2s ease,
     border-color 0.2s ease,
+    box-shadow 0.2s ease,
     background 0.2s ease;
 }
 
@@ -739,7 +845,9 @@ async function guardar() {
 }
 
 .upload-zone:hover {
+  transform: translateY(-2px);
   background: #fffaf2;
+  box-shadow: 0 12px 28px rgba(255, 152, 0, 0.16);
 }
 
 .upload-zone.has-error {
@@ -748,21 +856,22 @@ async function guardar() {
 
 .upload-preview {
   width: 100%;
-  height: 185px;
+  height: 210px;
 }
 
 .upload-title {
-  color: #7b8495;
+  color: #2d4059;
   margin-top: 10px;
+  font-weight: 700;
 }
 
 .upload-title span {
   color: #ff9800;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .upload-hint {
-  color: #9aa4b4;
+  color: #8d806e;
   font-size: 12px;
   margin-top: 6px;
 }
@@ -770,18 +879,23 @@ async function guardar() {
 .extras-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
 }
 
 .extra-add,
 .extra-preview {
-  width: 116px;
-  height: 66px;
-  border-radius: 12px;
+  width: 124px;
+  height: 74px;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.extra-preview {
+  box-shadow: 0 8px 18px rgba(84, 55, 12, 0.14);
 }
 
 .extra-add {
-  border: 2px dashed #cbd3df;
+  border: 2px dashed #d5bd95;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -792,6 +906,24 @@ async function guardar() {
 .extra-add:hover {
   border-color: #ff9800;
   background: #fffaf2;
+}
+
+.horarios-header {
+  padding: 16px;
+  border-radius: 18px;
+  background: white;
+  box-shadow: 0 10px 24px rgba(84, 55, 12, 0.08);
+  margin-bottom: 14px;
+}
+
+.horarios-list {
+  overflow: hidden;
+  border-color: #eadfce;
+  box-shadow: 0 12px 28px rgba(84, 55, 12, 0.08);
+}
+
+.horario-item {
+  background: white;
 }
 
 .horario-top-row,
@@ -806,13 +938,163 @@ async function guardar() {
   min-width: 150px;
 }
 
+.summary-hero {
+  min-height: 220px;
+  border-radius: 24px;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 1.25fr 0.75fr;
+  box-shadow: 0 18px 40px rgba(84, 55, 12, 0.18);
+}
+
+.sitio-summary-hero {
+  background: linear-gradient(135deg, #e86d00, #ff9800 55%, #ffc266);
+}
+
+.summary-hero-content {
+  padding: 24px;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+}
+
+.summary-title {
+  font-size: clamp(22px, 4vw, 32px);
+  line-height: 1.08;
+  font-weight: 900;
+}
+
+.summary-description {
+  font-size: 14px;
+  line-height: 1.55;
+  opacity: 0.95;
+  display: -webkit-box;
+  line-clamp: 4;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.summary-cover {
+  min-height: 220px;
+  height: 100%;
+}
+
+.summary-cover-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.16);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.summary-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 16px;
+  border-radius: 18px;
+  background: white;
+  box-shadow: 0 10px 26px rgba(84, 55, 12, 0.08);
+  border: 1px solid #f0e5d5;
+}
+
+.summary-card-wide {
+  grid-column: span 2;
+}
+
+.summary-card > .q-icon {
+  font-size: 26px;
+  color: #ff9800;
+  background: #fff3df;
+  padding: 8px;
+  border-radius: 14px;
+}
+
+.summary-card span {
+  display: block;
+  color: #8d806e;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.summary-card strong {
+  display: block;
+  color: #2f2414;
+  font-size: 15px;
+  margin-top: 2px;
+}
+
+.summary-card small {
+  display: block;
+  color: #7d715f;
+  margin-top: 4px;
+  line-height: 1.35;
+}
+
+.highlight-card {
+  border-color: rgba(255, 152, 0, 0.3);
+}
+
+.publish-banner {
+  border: 1px solid rgba(255, 152, 0, 0.24);
+  font-weight: 600;
+}
+
+.sitio-publish-banner {
+  background: #fff3df;
+  color: #704200;
+}
+
 .wizard-actions {
   flex-wrap: nowrap;
+  background: #ffffff;
+  box-shadow: 0 -10px 24px rgba(84, 55, 12, 0.07);
 }
 
 .sitio-btn {
-  background: #ff9800;
+  background: linear-gradient(135deg, #e86d00, #ff9800);
   color: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 18px rgba(255, 152, 0, 0.26);
+}
+
+@media (max-width: 620px) {
+  .wizard-card {
+    width: 96vw;
+    border-radius: 18px;
+  }
+
+  .summary-hero,
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-card-wide {
+    grid-column: span 1;
+  }
+
+  .summary-cover {
+    min-height: 160px;
+  }
+
+  .wizard-actions {
+    gap: 6px;
+  }
 }
 
 @keyframes fadeIn {
