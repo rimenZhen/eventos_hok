@@ -51,7 +51,7 @@ function construirNegocioDesdeUsuario(userDoc) {
     localizacion: detalleNegocio.localizacion || { lat: null, lng: null, direccion: '' },
     nit_registro: detalleNegocio.nit_registro || '',
     telefono: detalleNegocio.contacto || detalleNegocio.telefono || '',
-    estado: detalleNegocio.estado || 'activo',
+    estado: detalleNegocio.estado || 'pendiente',
     estado_solicitud: detalleNegocio.estado_solicitud || 'pendiente',
     fue_rechazado: detalleNegocio.fue_rechazado || false,
     usuario_propietario: propietario,

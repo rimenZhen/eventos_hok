@@ -41,6 +41,15 @@ export const alcaldiaAPI = {
     return result.docs
   },
 
+  // Renombrar o corregir getNegociosActivos para exigir aprobación real
+  async getNegociosAprobados() {
+    const result = await couch.find(DB_NEGOCIOS, {
+      type: 'negocio',
+      estado_solicitud: 'aprobado'
+    })
+    return result.docs
+  },
+
   async cambiarEstadoSolicitud(negocioId, nuevoEstado, alcaldiaData) {
     const negocioDoc = await couch.get(DB_NEGOCIOS, negocioId)
 

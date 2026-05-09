@@ -11,7 +11,12 @@ const routes = [
       { path: 'estadisticas', component: () => import('pages/alcaldia/EstadisticasPage.vue') },
 
       // Auth
-      { path: 'auth/login', name: 'login', component: () => import('pages/auth/LoginPage.vue') },
+      {
+        path: 'auth/login',
+        name: 'login',
+        component: () => import('pages/auth/LoginPage.vue'),
+
+      },
       {
         path: 'auth/registro',
         name: 'registro',
