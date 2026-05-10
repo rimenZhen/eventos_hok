@@ -199,14 +199,15 @@
                       </q-item-section>
                       <q-item-section>
                         <q-item-label caption>Ubicación</q-item-label>
-                                  <q-item-label>
-                                  {{ distritoMostrar }}<span v-if="distritoMostrar && departamentoMostrar">, </span>{{ departamentoMostrar }}
-                                </q-item-label>
+                        <q-item-label>
+                          {{ distritoMostrar }}<span v-if="distritoMostrar && departamentoMostrar">, </span>{{ departamentoMostrar }}
+                        </q-item-label>
                       </q-item-section>
                     </q-item>
                   </q-list>
                 </q-card>
 
+                <!-- SECCIÓN HORARIOS CORREGIDA -->
                 <q-card flat bordered class="q-mb-md card-adaptable" v-if="horarioFiltrado.length">
                   <q-card-section class="q-pb-none">
                     <div class="text-subtitle2 text-weight-bold text-uppercase text-grey-7">Horarios</div>
@@ -221,6 +222,15 @@
                       </q-item-section>
                     </q-item>
                   </q-list>
+                  <!-- 🔹 Campos globales de horario: solo se muestran si existen y cumplen condición -->
+                  <q-card-section class="q-pt-none" v-if="negocio.horario?.cerrado_festivos || negocio.horario?.nota?.trim()">
+                    <div v-if="negocio.horario.cerrado_festivos" class="text-negative text-italic q-mb-xs">
+                      <q-icon name="event_busy" size="16px" class="q-mr-xs" /> Cerrado en festivos
+                    </div>
+                    <div v-if="negocio.horario.nota?.trim()" class="text-grey">
+                      <q-icon name="info" size="16px" class="q-mr-xs" /> {{ negocio.horario.nota }}
+                    </div>
+                  </q-card-section>
                 </q-card>
 
                 <div v-if="negocio.localizacion?.lat" class="q-mb-md">
@@ -407,8 +417,6 @@ const imagenPortada = computed(() => {
 
   if (negocio.value.imagen_portada) {
     return placeholderPortada
-
-// Nueva función para obtener la clave de categoría (soporta string u objeto {label, value})
   }
 
   if (docImagenes.value && docImagenes.value._attachments) {
@@ -451,7 +459,6 @@ async function cargarPortada() {
     return
   }
 
-  // Si ya está cargada como blob, no recargues
   if (portadaImageSrc.value?.startsWith('blob:')) return
 
   try {
@@ -528,10 +535,8 @@ async function cargarNegocio() {
   try {
     const id = route.params.id
 
-    // 1. Cargar los datos del negocio usando la API (asegura normalización)
     negocio.value = await negocioAPI.getNegocioById(id)
 
-    // 2. Cargar el documento de imágenes para poblar docImagenes (si existe)
     try {
       docImagenes.value = await couch.get(import.meta.env.VITE_DB_IMAGES, `neg_${id}`)
     } catch (imgErr) {
@@ -539,7 +544,6 @@ async function cargarNegocio() {
       console.warn('El negocio no tiene documento de imágenes asociado aún.', imgErr)
     }
 
-    // 3. Registrar visita al perfil del negocio y refrescar el documento para mostrar estadísticas
     try {
       const userId = auth.user?._id || null
       await negocioAPI.recordProfileView(id, { userId })
@@ -564,10 +568,8 @@ async function agregarResena({ calificacion, comentario }) {
       fecha: new Date().toISOString()
     }
 
-    // Guardar reseña en la colección de negocios (eventos_negocios)
     await negocioAPI.addResena(negocio.value._id, nuevaResena)
 
-    // También registrar la reseña dentro del perfil del usuario en eventos_data
     try {
       const userDoc = await couch.get(import.meta.env.VITE_DB_DATA, auth.user._id)
       if (!userDoc.detalles) userDoc.detalles = {}
@@ -589,7 +591,6 @@ async function agregarResena({ calificacion, comentario }) {
       console.warn('No se pudo actualizar el perfil del usuario con la reseña', e)
     }
 
-    // Recargar negocio para mostrar la nueva reseña
     negocio.value = await negocioAPI.getNegocioById(negocio.value._id)
   } catch (err) {
     console.error('Error al guardar reseña:', err)
@@ -604,11 +605,9 @@ async function abrirDetalleProducto(index) {
     slideActualDetalle.value = 0
     mostrarDetalleProducto.value = true
 
-    // Registrar click en el catálogo para estadísticas (si hay usuario)
     try {
       const userId = auth.user?._id || null
       await negocioAPI.recordCatalogClick(negocio.value._id, prod.catalogKey || index, { userId })
-      // refrescar el documento para que la UI muestre estadísticas actualizadas
       try {
         negocio.value = await negocioAPI.getNegocioById(negocio.value._id)
       } catch (err) {
