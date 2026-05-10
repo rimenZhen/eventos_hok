@@ -11,6 +11,8 @@
               class="shadow-4"
               fit="cover"
               @error="imgError = true"
+              @click="abrirImagen(imagenPortada)"
+              @style="cursor: pointer;"
             >
               <template v-slot:error>
                 <div class="absolute-full flex flex-center bg-negative text-white">
@@ -24,7 +26,6 @@
               >
                 <div class="row q-gutter-xs">
                   <BotonFavorito tipo="sitio" :item="sitio" />
-                  <!-- <BotonVisita tipo="sitio" :item="sitio" /> -->
                 </div>
               </div>
             </q-img>
@@ -36,7 +37,6 @@
                 <div class="text-h4 text-weight-bold q-mb-sm">{{ sitio.nombre }}</div>
 
                 <div class="row items-center q-mb-md">
-                  <!-- Chip de categoría actualizado -->
                   <q-chip
                     :style="{ backgroundColor: categoriaData.color }"
                     text-color="white"
@@ -60,6 +60,12 @@
                   <q-btn flat dense color="primary" label="Cómo llegar" @click="comoLlegar" class="q-ml-sm" />
                 </div>
 
+                <!-- Dirección detallada -->
+                <div v-if="sitio.direccion" class="flex items-center q-mb-md q-ml-md">
+                  <q-icon name="map" size="18px" class="q-mr-xs text-blue-grey" />
+                  <span class="text-body2 text-grey-8">{{ sitio.direccion }}</span>
+                </div>
+
                 <div class="q-mb-md">
                   <div class="text-subtitle1 text-weight-bold">Descripción</div>
                   <p class="text-body1">{{ sitio.descripcion }}</p>
@@ -70,6 +76,7 @@
                   <MapaMini :lat="Number(sitio.localizacion.lat)" :lng="Number(sitio.localizacion.lng)" />
                 </div>
 
+                <!-- Galería de imágenes extra -->
                 <div v-if="sitio.imagenes_extra?.length" class="q-mb-md">
                   <div class="text-subtitle1 text-weight-bold">Galería</div>
                   <div class="row q-col-gutter-sm">
@@ -78,7 +85,7 @@
                         :src="getImagenUrl(img)"
                         :ratio="4/3"
                         class="rounded-borders cursor-pointer"
-                        @click="verImagen(img)"
+                        @click="abrirImagen(getImagenUrl(img))"
                       />
                     </div>
                   </div>
@@ -108,6 +115,7 @@
               </div>
 
               <div class="col-12 col-md-4">
+                <!-- Horario corregido -->
                 <div v-if="horarioFiltrado.length > 0" class="q-mb-md">
                   <div class="text-subtitle1 text-weight-bold">Horario</div>
                   <q-list dense separator>
@@ -116,12 +124,10 @@
                         <q-item-label class="text-weight-medium">{{ dia.nombre }}</q-item-label>
                       </q-item-section>
                       <q-item-section side>
-                        <q-item-label>
-                          <template v-if="dia.datos.abierto">
-                            {{ dia.datos.apertura }} - {{ dia.datos.cierre }}
-                          </template>
-                          <template v-else>Cerrado</template>
+                        <q-item-label v-if="!dia.datos.cerrado">
+                          {{ dia.datos.apertura }} - {{ dia.datos.cierre }}
                         </q-item-label>
+                        <q-item-label v-else>Cerrado</q-item-label>
                         <q-item-label v-if="dia.datos.cerrado_festivos" caption class="text-negative text-italic">
                           Cerrado en festivos
                         </q-item-label>
@@ -154,7 +160,8 @@
                         <q-item-section side>
                           <div class="row items-center">
                             <q-rating :model-value="negocio.rating" readonly size="1em" color="amber" />
-                            <q-icon name="chevron_right" color="grey-6" />
+                            <span class="q-ml-xs text-caption text-grey">{{ negocio.distancia }}</span>
+                            <q-icon name="chevron_right" color="grey-6" class="q-ml-sm" />
                           </div>
                         </q-item-section>
                       </q-item>
@@ -171,6 +178,7 @@
       </div>
     </div>
 
+    <!-- Estados de carga y error -->
     <div v-else-if="error" class="flex flex-center full-height">
       <div class="text-red text-center">
         <q-icon name="error_outline" size="64px" />
@@ -180,6 +188,13 @@
     <div v-else class="flex flex-center full-height">
       <q-spinner-dots color="primary" size="50px" />
     </div>
+
+    <!-- Diálogo para imagen ampliada -->
+    <q-dialog v-model="dialogImagen" maximized>
+      <div class="flex flex-center" style="height: 100%; background: rgba(0,0,0,0.9);" @click="dialogImagen = false">
+        <q-img :src="imagenDialogUrl" fit="contain" style="max-height: 90vh; max-width: 90vw;" />
+      </div>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -190,7 +205,7 @@ import { useQuasar } from 'quasar'
 import { couch } from 'src/api/index'
 import { negocioAPI } from 'src/api/negocio'
 import { useAuthStore } from 'src/stores/auth'
-import { useConfiguracionStore } from 'src/stores/configuracion' // nueva importación
+import { useConfiguracionStore } from 'src/stores/configuracion'
 import FormularioResena from 'src/components/FormularioResena.vue'
 import MapaMini from 'src/components/MapaMini.vue'
 import BotonFavorito from 'src/components/BotonFavorito.vue'
@@ -199,28 +214,32 @@ const $q = useQuasar()
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
-const configStore = useConfiguracionStore() // instancia del store
+const configStore = useConfiguracionStore()
 
 const sitio = ref(null)
 const error = ref(null)
 const imgError = ref(false)
 const negociosCercanos = ref([])
+const dialogImagen = ref(false)
+const imagenDialogUrl = ref('')
 
-const extraerLabel = (valor) => {
-  if (!valor) return ''
-  if (typeof valor === 'string') return valor
-  return valor.label || valor.nombre || valor.clave || ''
+// ---------- FÓRMULA DE HAVERSINE ----------
+function toRad(deg) {
+  return deg * Math.PI / 180
 }
 
-const horarioFiltrado = computed(() => {
-  if (!sitio.value?.horario) return []
-  const diasSemana = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo']
-  return Object.entries(sitio.value.horario)
-    .filter(([key]) => diasSemana.includes(key.toLowerCase()))
-    .map(([nombre, datos]) => ({ nombre, datos }))
-})
+function calcularDistancia(lat1, lng1, lat2, lng2) {
+  const R = 6371 // Radio de la Tierra en km
+  const dLat = toRad(lat2 - lat1)
+  const dLng = toRad(lng2 - lng1)
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return R * c
+}
 
-// ---- CATEGORÍA DESDE CONFIGURACIÓN (reemplaza categoriaInfo anterior) ----
+// ---- CATEGORÍA DESDE CONFIGURACIÓN ----
 function extractCategoryKey(cat) {
   if (!cat) return ''
   if (typeof cat === 'string') return cat
@@ -237,12 +256,67 @@ const categoriaData = computed(() => {
     ? { nombre: found.nombre, color: found.color }
     : { nombre: 'Sitio', color: '#9E9E9E' }
 })
-// ------------------------------------
+
+// ---- NOMBRE DEL DEPARTAMENTO ----
+const departamentoNombre = computed(() => {
+  const dep = sitio.value?.departamento
+  if (!dep) return ''
+  if (typeof dep === 'string') {
+    const found = configStore.departamentos.find(d => d.clave === dep)
+    return found?.nombre || dep
+  }
+  return dep.nombre || dep.clave || ''
+})
+
+// ---- NOMBRE DEL DISTRITO ----
+const distritoNombre = computed(() => {
+  if (sitio.value?.distrito?.nombre) {
+    return sitio.value.distrito.nombre
+  }
+  const mun = sitio.value?.municipio
+  if (!mun) return ''
+
+  let clave = ''
+  if (typeof mun === 'string') clave = mun
+  else if (mun.clave) clave = mun.clave
+  else if (mun.value) clave = mun.value
+  else return mun.nombre || ''
+
+  const distrito = configStore.distritos.find(d => d.clave === clave)
+  if (distrito) return distrito.nombre
+
+  const alcaldia = configStore.alcaldias.find(a => a.clave === clave)
+  if (alcaldia) {
+    const distritosAlc = configStore.distritos.filter(d => d.alcaldia === clave)
+    if (distritosAlc.length > 0) {
+      const base = alcaldia.nombre.replace(/\s+(Norte|Sur|Este|Oeste|Centro)$/i, '').trim()
+      const match = distritosAlc.find(d => d.nombre.toLowerCase() === base.toLowerCase())
+      if (match) return match.nombre
+      return distritosAlc[0].nombre
+    }
+    return alcaldia.nombre
+  }
+  return clave
+})
 
 const ubicacion = computed(() => {
-  const mun = extraerLabel(sitio.value?.municipio)
-  const dep = extraerLabel(sitio.value?.departamento)
-  return mun && dep ? `${mun}, ${dep}` : (mun || dep || 'Ubicación no especificada')
+  const d = distritoNombre.value
+  const dep = departamentoNombre.value
+  if (d && dep) return `${d}, ${dep}`
+  if (d) return d
+  if (dep) return dep
+  return 'Ubicación no especificada'
+})
+
+const horarioFiltrado = computed(() => {
+  if (!sitio.value?.horario) return []
+  const diasSemana = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo']
+  return Object.entries(sitio.value.horario)
+    .filter(([key]) => diasSemana.includes(key.toLowerCase()))
+    .map(([nombre, datos]) => ({
+      nombre,
+      datos
+    }))
 })
 
 const imagenPortada = computed(() => {
@@ -252,19 +326,60 @@ const imagenPortada = computed(() => {
   return couch.getImageUrl(`sit_${sitio.value._id}`, sitio.value.imagen_portada)
 })
 
+const getImagenUrl = (nombre) => couch.getImageUrl(`sit_${sitio.value._id}`, nombre)
+
+const abrirImagen = (url) => {
+  imagenDialogUrl.value = url
+  dialogImagen.value = true
+}
+
+// ---------- NEGOCIOS CERCANOS (CORREGIDO CON COORDENADAS) ----------
 const cargarNegociosCercanos = async () => {
-  const mun = extraerLabel(sitio.value?.municipio)
-  if (!mun) return
+  const loc = sitio.value?.localizacion
+  if (!loc || loc.lat == null || loc.lng == null) {
+    console.warn('El sitio no tiene coordenadas válidas')
+    return
+  }
+
+  const latSitio = Number(loc.lat)
+  const lngSitio = Number(loc.lng)
+
   try {
-    const result = await negocioAPI.listNegociosActivos({ municipio: mun }, { limit: 3 })
-    negociosCercanos.value = result.map(neg => ({
+    // Obtener todos los negocios activos sin filtro de municipio
+    const todosNegocios = await negocioAPI.listNegociosActivos({}, { limit: 1000 })
+
+    // Solo los que tengan coordenadas numéricas
+    const conCoordenadas = todosNegocios.filter(neg => {
+      const lat = neg.localizacion?.lat
+      const lng = neg.localizacion?.lng
+      return lat != null && lng != null && !isNaN(Number(lat)) && !isNaN(Number(lng))
+    })
+
+    // Calcular distancia y ordenar
+    const conDistancia = conCoordenadas.map(neg => {
+      const latNeg = Number(neg.localizacion.lat)
+      const lngNeg = Number(neg.localizacion.lng)
+      const distancia = calcularDistancia(latSitio, lngSitio, latNeg, lngNeg)
+      return { ...neg, distancia }
+    })
+
+    conDistancia.sort((a, b) => a.distancia - b.distancia)
+
+    // Tomar los 3 más cercanos (puedes cambiarlo a 5)
+    const cercanos = conDistancia.slice(0, 3)
+
+    negociosCercanos.value = cercanos.map(neg => ({
       id: neg._id,
       nombre: neg.nombre_comercial,
-      descripcion: neg.descripcion?.substring(0, 50) + '...',
-      rating: neg.calificacion_promedio || 4.0
+      descripcion: neg.descripcion ? neg.descripcion.substring(0, 50) + '...' : '',
+      rating: neg.calificacion_promedio || 4.0,
+      distancia: neg.distancia < 1
+        ? `${Math.round(neg.distancia * 1000)} m`
+        : `${neg.distancia.toFixed(1)} km`
     }))
   } catch (e) {
-    console.error('Error cargando negocios:', e)
+    console.error('Error cargando negocios cercanos:', e)
+    negociosCercanos.value = []
   }
 }
 
@@ -284,15 +399,9 @@ async function cargarSitio() {
 
 const comoLlegar = () => {
   if (sitio.value?.localizacion?.lat) {
-    window.open(`https://www.google.com/maps?q=${sitio.value.localizacion.lat},${sitio.value.localizacion.lng}`)
+    window.open(`https://maps.google.com/maps?q=${sitio.value.localizacion.lat},${sitio.value.localizacion.lng}`)
   }
 }
-
-const verImagen = (nombre) => {
-  window.open(couch.getImageUrl(`sit_${sitio.value._id}`, nombre), '_blank')
-}
-
-const getImagenUrl = (nombre) => couch.getImageUrl(`sit_${sitio.value._id}`, nombre)
 
 const formatDate = (isoString) => {
   if (!isoString) return ''
@@ -315,13 +424,13 @@ async function agregarResena({ calificacion, comentario }) {
     sitio.value.calificacion_promedio = total / sitio.value.reseñas.length
     await couch.put(import.meta.env.VITE_DB_DATA, sitio.value)
     $q.notify({ type: 'positive', message: 'Reseña enviada con éxito' })
-  } catch{
+  } catch {
     $q.notify({ type: 'negative', message: 'Error al guardar la reseña' })
   }
 }
 
 onMounted(async () => {
-  await configStore.fetchCatalogos() // cargar catálogos antes
+  await configStore.fetchCatalogos()
   await cargarSitio()
 })
 </script>

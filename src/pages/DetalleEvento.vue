@@ -157,12 +157,12 @@
                   </q-card-section>
                 </q-card>
 
-                <!-- Negocios cercanos -->
+                <!-- Negocios cercanos (CORREGIDO: basado en coordenadas) -->
                 <q-card flat bordered>
                   <q-card-section>
                     <div class="text-subtitle1 text-weight-bold">Negocios Cercanos</div>
                     <q-list dense separator>
-                      <q-item v-for="negocio in negociosCercanos" :key="negocio.nombre" clickable v-ripple @click="negocio.id ? irANegocio(negocio.id) : null">
+                      <q-item v-for="negocio in negociosCercanos" :key="negocio.id" clickable v-ripple @click="irANegocio(negocio.id)">
                         <q-item-section avatar>
                           <q-icon name="store" color="grey" />
                         </q-item-section>
@@ -172,7 +172,7 @@
                         </q-item-section>
                         <q-item-section side>
                           <q-rating :model-value="negocio.rating" readonly size="1em" color="amber" />
-                          <span class="text-caption text-grey">{{ negocio.rating }}</span>
+                          <span class="text-caption text-grey">{{ negocio.distancia }}</span>
                         </q-item-section>
                       </q-item>
                     </q-list>
@@ -239,6 +239,21 @@ const orgLogoError = ref(false)
 const dialogImagen = ref(false)
 const imagenDialogUrl = ref('')
 
+// ---------- FÓRMULA DE HAVERSINE ----------
+function toRad(deg) {
+  return deg * Math.PI / 180
+}
+function calcularDistancia(lat1, lng1, lat2, lng2) {
+  const R = 6371 // Radio de la Tierra en km
+  const dLat = toRad(lat2 - lat1)
+  const dLng = toRad(lng2 - lng1)
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return R * c
+}
+
 // Helper para formatear fechas
 const formatDate = (isoString) => {
   if (!isoString) return ''
@@ -285,12 +300,9 @@ const departamentoNombre = computed(() => {
 
 // --- NOMBRE DEL DISTRITO (con fallback a alcaldía) ---
 const distritoNombre = computed(() => {
-  // 1. Si el evento tiene el objeto distrito con nombre, usarlo directamente
   if (evento.value?.distrito?.nombre) {
     return evento.value.distrito.nombre
   }
-
-  // 2. Si no, buscar a partir de municipio (que puede ser objeto o string)
   const mun = evento.value?.municipio
   if (!mun) return ''
 
@@ -300,11 +312,9 @@ const distritoNombre = computed(() => {
   else if (mun.value) clave = mun.value
   else return mun.nombre || ''
 
-  // 3. Buscar en catálogo de distritos por clave
   const distrito = configStore.distritos.find(d => d.clave === clave)
   if (distrito) return distrito.nombre
 
-  // 4. Si no se encuentra, podría ser una alcaldía; extraer el distrito principal
   const alcaldiaEncontrada = configStore.alcaldias.find(a => a.clave === clave)
   if (alcaldiaEncontrada) {
     const distritosAlc = configStore.distritos.filter(d => d.alcaldia === clave)
@@ -317,11 +327,9 @@ const distritoNombre = computed(() => {
     return alcaldiaEncontrada.nombre
   }
 
-  // 5. Si todo falla, devolver la clave original
   return clave
 })
 
-// Ubicación completa
 const ubicacion = computed(() => {
   const distrito = distritoNombre.value
   const departamento = departamentoNombre.value
@@ -331,9 +339,7 @@ const ubicacion = computed(() => {
   return 'Ubicación no especificada'
 })
 
-// --- LÓGICA DE FECHA Y HORA (Línea de Tiempo) ---
-
-// Helper para formatear AM/PM a a. m. / p. m.
+// --- LÓGICA DE FECHA Y HORA ---
 const formatAMPM = (date) => {
   return date.toLocaleTimeString('es-SV', {
     hour: '2-digit',
@@ -343,7 +349,6 @@ const formatAMPM = (date) => {
   }).replace('AM', 'a. m.').replace('PM', 'p. m.');
 }
 
-// Helper para abreviatura de día (Jue, Sáb, etc)
 const getDiaSemanaAbbr = (date) => {
   const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
   return dias[date.getDay()];
@@ -351,21 +356,14 @@ const getDiaSemanaAbbr = (date) => {
 
 const displayFecha = computed(() => {
   if (!evento.value?.fecha_inicio) return 'Fecha no definida';
-
   const inicio = new Date(evento.value.fecha_inicio);
   const fin = evento.value.fecha_fin ? new Date(evento.value.fecha_fin) : null;
-
   if (isNaN(inicio.getTime())) return 'Fecha inválida';
-
   const opcionesMes = { day: 'numeric', month: 'long' };
   const anio = inicio.getFullYear();
-
-  // Caso: Mismo día o no hay fecha de fin
   if (!fin || inicio.toDateString() === fin.toDateString()) {
     return `${inicio.toLocaleDateString('es-SV', opcionesMes)} de ${anio}`;
   }
-
-  // Caso: Diferentes días
   const inicioStr = inicio.toLocaleDateString('es-SV', opcionesMes);
   const finStr = fin.toLocaleDateString('es-SV', opcionesMes);
   return `${inicioStr} — ${finStr}, ${anio}`;
@@ -373,21 +371,14 @@ const displayFecha = computed(() => {
 
 const displayHora = computed(() => {
   if (!evento.value?.fecha_inicio) return '--:--';
-
   const inicio = new Date(evento.value.fecha_inicio);
   const fin = evento.value.fecha_fin ? new Date(evento.value.fecha_fin) : null;
-
   if (isNaN(inicio.getTime())) return '--:--';
-
   const horaInicioStr = formatAMPM(inicio);
-
-  // Caso: Mismo día
   if (!fin || inicio.toDateString() === fin.toDateString()) {
     const horaFinStr = fin ? formatAMPM(fin) : '';
     return horaFinStr ? `${horaInicioStr} — ${horaFinStr}` : horaInicioStr;
   }
-
-  // Caso: Diferentes días (con abreviatura de día)
   const horaFinStr = formatAMPM(fin);
   return `${horaInicioStr} (${getDiaSemanaAbbr(inicio)}) — ${horaFinStr} (${getDiaSemanaAbbr(fin)})`;
 });
@@ -396,13 +387,9 @@ const displayHora = computed(() => {
 const nombreOrganizador = computed(() => {
   const alc = evento.value?.alcaldia
   if (!alc) return 'Organizador no disponible'
-
-  // Si es un objeto, tomar nombre_institucional o nombre
   if (typeof alc === 'object') {
     return alc.nombre_institucional || alc.nombre || 'Organizador no disponible'
   }
-
-  // Si es string, buscar en el catálogo de alcaldías
   const found = configStore.alcaldias.find(a => a.clave === alc)
   return found?.nombre || alc
 })
@@ -428,7 +415,6 @@ const departamentoOrganizador = computed(() => {
 })
 
 const organizadorLogo = computed(() => {
-  // Placeholder por defecto si hay error o no hay logo
   if (orgLogoError.value) return 'https://via.placeholder.com/40?text=Logo'
   const alcId = evento.value?.alcaldia?._id
   if (alcId) {
@@ -441,7 +427,6 @@ const onOrgLogoError = () => {
   orgLogoError.value = true
 }
 
-// Imagen del evento
 const imgError = ref(false)
 
 const imagenPortada = computed(() => {
@@ -452,25 +437,55 @@ const imagenPortada = computed(() => {
   return couch.getImageUrl(docId, evento.value.imagen_portada)
 })
 
-// Negocios cercanos
+// ---------- NEGOCIOS CERCANOS (CORREGIDO) ----------
 const negociosCercanos = ref([])
+
 const cargarNegociosCercanos = async () => {
-  if (!evento.value?.localizacion) return
+  const loc = evento.value?.localizacion
+  if (!loc || loc.lat == null || loc.lng == null) {
+    console.warn('El evento no tiene coordenadas válidas')
+    return
+  }
+
+  const latEvento = Number(loc.lat)
+  const lngEvento = Number(loc.lng)
+
   try {
-    const result = await negocioAPI.listNegociosActivos({ municipio: evento.value.municipio }, { limit: 5 })
-    negociosCercanos.value = result.map(neg => ({
+    // Obtener todos los negocios activos (sin filtro por municipio)
+    const todosNegocios = await negocioAPI.listNegociosActivos({}, { limit: 1000 })
+
+    // Filtrar aquellos que tengan coordenadas válidas
+    const conCoordenadas = todosNegocios.filter(neg => {
+      const lat = neg.localizacion?.lat
+      const lng = neg.localizacion?.lng
+      return lat != null && lng != null && !isNaN(Number(lat)) && !isNaN(Number(lng))
+    })
+
+    // Calcular distancia y ordenar
+    const conDistancia = conCoordenadas.map(neg => {
+      const latNeg = Number(neg.localizacion.lat)
+      const lngNeg = Number(neg.localizacion.lng)
+      const distancia = calcularDistancia(latEvento, lngEvento, latNeg, lngNeg)
+      return { ...neg, distancia }
+    })
+
+    conDistancia.sort((a, b) => a.distancia - b.distancia)
+
+    // Tomar los 5 más cercanos (puedes ajustar el número)
+    const cercanos = conDistancia.slice(0, 5)
+
+    negociosCercanos.value = cercanos.map(neg => ({
       id: neg._id,
       nombre: neg.nombre_comercial,
-      descripcion: neg.descripcion?.substring(0, 50),
-      rating: neg.calificacion_promedio || 4.0
+      descripcion: neg.descripcion ? neg.descripcion.substring(0, 50) + '...' : '',
+      rating: neg.calificacion_promedio || 4.0,
+      distancia: neg.distancia < 1
+        ? `${Math.round(neg.distancia * 1000)} m`
+        : `${neg.distancia.toFixed(1)} km`
     }))
   } catch (e) {
-    console.error('Error cargando negocios cercanos', e)
-    negociosCercanos.value = [
-      { nombre: 'Pupusa El Surfista', descripcion: 'Las mejores pupusas de la costa', rating: 4.9 },
-      { nombre: 'Café del Mar', descripcion: 'Café y postres con vista al mar', rating: 4.7 },
-      { nombre: 'Artesanías Playeras', descripcion: 'Recreaciones y artesanías locales', rating: 4.5 }
-    ]
+    console.error('Error cargando negocios cercanos por coordenadas', e)
+    negociosCercanos.value = []
   }
 }
 
@@ -500,7 +515,7 @@ const setRecordatorio = () => {
   $q.notify({ type: 'info', message: 'Funcionalidad en desarrollo: establecer recordatorio' })
 }
 
-// Agregar reseña
+// Agregar reseña (sin cambios)
 async function agregarResena({ calificacion, comentario }) {
   if (!auth.user || auth.rol !== 'usuario_final') return
   try {
@@ -548,7 +563,6 @@ const getImagenUrl = (nombre) => {
   return couch.getImageUrl(docId, nombre)
 }
 
-// Cargar evento
 async function cargarEvento() {
   try {
     const id = route.params.id

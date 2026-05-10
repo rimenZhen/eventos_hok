@@ -15,7 +15,7 @@
       <div class="absolute-bottom-right bg-transparent">
         <div class="text-caption row items-center">
           <q-icon name="place" color="white" />
-          {{ getDisplayField(sitio.municipio) }}, {{ getDisplayField(sitio.departamento) }}
+          {{ ubicacion }}
         </div>
       </div>
     </q-img>
@@ -61,15 +61,6 @@ import { useConfiguracionStore } from 'src/stores/configuracion'
 const props = defineProps({ sitio: Object })
 const configStore = useConfiguracionStore()
 
-function getDisplayField(field) {
-  if (!field) return ''
-  if (typeof field === 'string') return field
-  if (typeof field === 'object') {
-    return field.label || field.nombre || field.value || JSON.stringify(field)
-  }
-  return String(field)
-}
-
 // ---- CATEGORÍA DESDE CONFIGURACIÓN ----
 function extractCategoryKey(cat) {
   if (!cat) return ''
@@ -87,8 +78,65 @@ const categoriaData = computed(() => {
     ? { nombre: found.nombre, color: found.color }
     : { nombre: 'General', color: '#9E9E9E' }
 })
-// ------------------------------------
 
+// ---- NOMBRE DEL DEPARTAMENTO DESDE CATÁLOGO ----
+const departamentoNombre = computed(() => {
+  const dep = props.sitio.departamento
+  if (!dep) return ''
+  if (typeof dep === 'string') {
+    const found = configStore.departamentos.find(d => d.clave === dep)
+    return found?.nombre || dep
+  }
+  return dep.nombre || dep.clave || ''
+})
+
+// ---- NOMBRE DEL DISTRITO (prioriza distrito.nombre) ----
+const distritoNombre = computed(() => {
+  // 1. Si el sitio tiene el objeto distrito con nombre, usarlo
+  if (props.sitio?.distrito?.nombre) {
+    return props.sitio.distrito.nombre
+  }
+
+  // 2. Si no, buscar a partir de municipio
+  const mun = props.sitio?.municipio
+  if (!mun) return ''
+
+  let clave = ''
+  if (typeof mun === 'string') clave = mun
+  else if (mun.clave) clave = mun.clave
+  else if (mun.value) clave = mun.value
+  else return mun.nombre || ''
+
+  // 3. Buscar en catálogo de distritos por clave
+  const distrito = configStore.distritos.find(d => d.clave === clave)
+  if (distrito) return distrito.nombre
+
+  // 4. Podría ser una alcaldía; extraer distrito principal
+  const alcaldia = configStore.alcaldias.find(a => a.clave === clave)
+  if (alcaldia) {
+    const distritosAlc = configStore.distritos.filter(d => d.alcaldia === clave)
+    if (distritosAlc.length > 0) {
+      const base = alcaldia.nombre.replace(/\s+(Norte|Sur|Este|Oeste|Centro)$/i, '').trim()
+      const match = distritosAlc.find(d => d.nombre.toLowerCase() === base.toLowerCase())
+      if (match) return match.nombre
+      return distritosAlc[0].nombre
+    }
+    return alcaldia.nombre
+  }
+  return clave
+})
+
+// ---- UBICACIÓN FORMATEADA ----
+const ubicacion = computed(() => {
+  const d = distritoNombre.value
+  const dep = departamentoNombre.value
+  if (d && dep) return `${d}, ${dep}`
+  if (d) return d
+  if (dep) return dep
+  return 'Ubicación no especificada'
+})
+
+// ---- IMAGEN ----
 const imgDocId = computed(() => 'sit_' + props.sitio._id)
 const imagenPortada = computed(() => {
   if (props.sitio.imagen_portada) {
@@ -97,6 +145,7 @@ const imagenPortada = computed(() => {
   return 'https://via.placeholder.com/400x225?text=Sitio'
 })
 
+// ---- DESCRIPCIÓN CORTA ----
 const descripcionCorta = computed(() => {
   const desc = props.sitio.descripcion || ''
   return desc.length > 120 ? desc.substring(0, 120) + '…' : desc
