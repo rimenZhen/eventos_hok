@@ -586,6 +586,21 @@ function inicializarHorario() {
   })
 }
 
+function clonarHorario(horario = {}) {
+  const horarioClonado = {}
+
+  diasSemana.forEach((dia) => {
+    const horarioDia = horario?.[dia] || {}
+    horarioClonado[dia] = {
+      apertura: horarioDia.apertura || '09:00',
+      cierre: horarioDia.cierre || '18:00',
+      cerrado: Boolean(horarioDia.cerrado),
+    }
+  })
+
+  return horarioClonado
+}
+
 function cargarSitio(s) {
   const dep = typeof s.departamento === 'object' ? s.departamento.value : s.departamento
   const mun =
@@ -602,7 +617,7 @@ function cargarSitio(s) {
     municipio: mun || detalleAlcaldia.value.municipio || '',
     distrito: obtenerClaveDistrito(s.distrito),
     direccion: s.direccion || s.localizacion?.direccion || '',
-    horario: s.horario ? { ...s.horario } : {},
+    horario: clonarHorario(s.horario),
   })
 
   inicializarHorario()
@@ -796,7 +811,7 @@ async function guardar() {
       municipio: form.municipio,
       distrito: buildDistritoObject(form.distrito),
       direccion: form.direccion,
-      horario: form.horario,
+      horario: clonarHorario(form.horario),
       estado: 'activo',
       alcaldia: {
         _id: auth.user._id,
