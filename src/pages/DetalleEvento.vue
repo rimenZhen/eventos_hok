@@ -4,13 +4,11 @@
       <div class="col-12 col-md-10 col-lg-8">
         <!-- Tarjeta principal -->
         <q-card flat bordered class="q-mb-md">
-          <!-- Imagen con tamaño fijo -->
-          <div class="row justify-center q-pt-md">
+          <div @click="abrirImagen(imagenPortada)" style="cursor: pointer;">
             <q-img
               :src="imagenPortada"
               :ratio="16/9"
-              style="max-width: 100%; max-height: 400px;"
-              class="rounded-borders shadow-4"
+              style="width: 100%; max-height: 400px;"
               fit="cover"
               @error="imgError = true"
             >
@@ -44,15 +42,14 @@
                   class="q-mt-sm"
                 />
 
-                <!-- Fecha y hora con iconos -->
-                <div class="row items-center q-mt-md q-gutter-x-md">
+                <div class="column q-mt-md q-gutter-y-xs">
                   <div class="flex items-center">
                     <q-icon name="event" size="20px" class="q-mr-xs text-primary" />
-                    <span>{{ fechaFormateada }}</span>
+                    <span class="text-body1">{{ displayFecha }}</span>
                   </div>
                   <div class="flex items-center">
                     <q-icon name="schedule" size="20px" class="q-mr-xs text-primary" />
-                    <span>{{ horaInicio }} - {{ horaFin }}</span>
+                    <span class="text-body1">{{ displayHora }}</span>
                   </div>
                 </div>
 
@@ -81,7 +78,7 @@
                   <div class="text-subtitle1 text-weight-bold">Galería</div>
                   <div class="row q-col-gutter-sm">
                     <div v-for="(img, idx) in evento.imagenes_extra" :key="idx" class="col-6 col-sm-4 col-md-3">
-                      <q-img :src="getImagenUrl(img)" :ratio="4/3" class="rounded-borders cursor-pointer" @click="verImagen(img)" />
+                      <q-img :src="getImagenUrl(img)" :ratio="4/3" class="rounded-borders cursor-pointer" @click="abrirImagen(getImagenUrl(img))" />
                     </div>
                   </div>
                 </div>
@@ -160,7 +157,7 @@
                   </q-card-section>
                 </q-card>
 
-                <!-- Negocios cercanos (simulados o desde datos) -->
+                <!-- Negocios cercanos -->
                 <q-card flat bordered>
                   <q-card-section>
                     <div class="text-subtitle1 text-weight-bold">Negocios Cercanos</div>
@@ -185,7 +182,7 @@
                   </q-card-section>
                 </q-card>
 
-                <!-- Botones adicionales: favorito y visita (del usuario) -->
+                <!-- Botones adicionales: favorito y visita -->
                 <div v-if="auth.isLoggedIn && auth.rol === 'usuario_final'" class="row q-gutter-sm q-mt-md">
                   <BotonFavorito tipo="evento" :item="evento" />
                   <BotonVisita tipo="evento" :item="evento" />
@@ -208,6 +205,13 @@
       <q-spinner-dots color="primary" size="50px" />
     </div>
   </q-page>
+
+  <!-- Diálogo para imagen ampliada -->
+  <q-dialog v-model="dialogImagen" maximized>
+    <div class="flex flex-center" style="height: 100%; background: rgba(0,0,0,0.9);" @click="dialogImagen = false">
+      <q-img :src="imagenDialogUrl" fit="contain" style="max-height: 90vh; max-width: 90vw;" />
+    </div>
+  </q-dialog>
 </template>
 
 <script setup>
@@ -232,6 +236,8 @@ const configStore = useConfiguracionStore()
 const evento = ref(null)
 const error = ref(null)
 const orgLogoError = ref(false)
+const dialogImagen = ref(false)
+const imagenDialogUrl = ref('')
 
 // Helper para formatear fechas
 const formatDate = (isoString) => {
@@ -240,11 +246,16 @@ const formatDate = (isoString) => {
   return date.toLocaleDateString('es-SV', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
+// Abrir imagen en diálogo
+const abrirImagen = (url) => {
+  imagenDialogUrl.value = url
+  dialogImagen.value = true
+}
+
 // ---- CATEGORÍA DESDE CONFIGURACIÓN ----
 function extractCategoryKey(cat) {
   if (!cat) return ''
   if (typeof cat === 'string') return cat
-  // Objeto típico { label: 'Música', value: 'musica' }
   return cat.value || cat.clave || cat.label || ''
 }
 
@@ -260,59 +271,165 @@ const categoriaData = computed(() => {
 })
 // ------------------------------------
 
-// Departamento (soporta string u objeto)
-const nombreDepartamento = computed(() => {
+// --- NOMBRE DEL DEPARTAMENTO ---
+const departamentoNombre = computed(() => {
   const dep = evento.value?.departamento
   if (!dep) return ''
-  if (typeof dep === 'string') return dep
-  return dep.nombre || dep.clave || ''
+  if (typeof dep === 'string') {
+    const found = configStore.departamentos.find(d => d.clave === dep)
+    return found?.nombre || dep
+  } else {
+    return dep.nombre || dep.clave || ''
+  }
 })
 
+// --- NOMBRE DEL DISTRITO (con fallback a alcaldía) ---
+const distritoNombre = computed(() => {
+  // 1. Si el evento tiene el objeto distrito con nombre, usarlo directamente
+  if (evento.value?.distrito?.nombre) {
+    return evento.value.distrito.nombre
+  }
+
+  // 2. Si no, buscar a partir de municipio (que puede ser objeto o string)
+  const mun = evento.value?.municipio
+  if (!mun) return ''
+
+  let clave = ''
+  if (typeof mun === 'string') clave = mun
+  else if (mun.clave) clave = mun.clave
+  else if (mun.value) clave = mun.value
+  else return mun.nombre || ''
+
+  // 3. Buscar en catálogo de distritos por clave
+  const distrito = configStore.distritos.find(d => d.clave === clave)
+  if (distrito) return distrito.nombre
+
+  // 4. Si no se encuentra, podría ser una alcaldía; extraer el distrito principal
+  const alcaldiaEncontrada = configStore.alcaldias.find(a => a.clave === clave)
+  if (alcaldiaEncontrada) {
+    const distritosAlc = configStore.distritos.filter(d => d.alcaldia === clave)
+    if (distritosAlc.length > 0) {
+      const base = alcaldiaEncontrada.nombre.replace(/\s+(Norte|Sur|Este|Oeste|Centro)$/i, '').trim()
+      const match = distritosAlc.find(d => d.nombre.toLowerCase() === base.toLowerCase())
+      if (match) return match.nombre
+      return distritosAlc[0].nombre
+    }
+    return alcaldiaEncontrada.nombre
+  }
+
+  // 5. Si todo falla, devolver la clave original
+  return clave
+})
+
+// Ubicación completa
 const ubicacion = computed(() => {
-  const municipio = evento.value?.municipio || ''
-  const departamento = nombreDepartamento.value
-  if (municipio && departamento) return `${municipio}, ${departamento}`
-  if (municipio) return municipio
+  const distrito = distritoNombre.value
+  const departamento = departamentoNombre.value
+  if (distrito && departamento) return `${distrito}, ${departamento}`
+  if (distrito) return distrito
   if (departamento) return departamento
   return 'Ubicación no especificada'
 })
 
-// Fechas y horas
-const fechaFormateada = computed(() => {
-  if (!evento.value?.fecha_inicio) return 'Fecha no definida'
-  const date = new Date(evento.value.fecha_inicio)
-  if (isNaN(date.getTime())) return 'Fecha inválida'
-  return date.toLocaleDateString('es-SV', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-})
+// --- LÓGICA DE FECHA Y HORA (Línea de Tiempo) ---
 
-const horaInicio = computed(() => {
-  if (!evento.value?.fecha_inicio) return '--:--'
-  const date = new Date(evento.value.fecha_inicio)
-  if (isNaN(date.getTime())) return '--:--'
-  return date.toLocaleTimeString('es-SV', { hour: '2-digit', minute: '2-digit', timeZone: 'America/El_Salvador' })
-})
+// Helper para formatear AM/PM a a. m. / p. m.
+const formatAMPM = (date) => {
+  return date.toLocaleTimeString('es-SV', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'America/El_Salvador'
+  }).replace('AM', 'a. m.').replace('PM', 'p. m.');
+}
 
-const horaFin = computed(() => {
-  if (!evento.value?.fecha_fin) return '--:--'
-  const date = new Date(evento.value.fecha_fin)
-  if (isNaN(date.getTime())) return '--:--'
-  return date.toLocaleTimeString('es-SV', { hour: '2-digit', minute: '2-digit', timeZone: 'America/El_Salvador' })
-})
+// Helper para abreviatura de día (Jue, Sáb, etc)
+const getDiaSemanaAbbr = (date) => {
+  const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  return dias[date.getDay()];
+}
 
-// Organizador (de evento.alcaldia)
+const displayFecha = computed(() => {
+  if (!evento.value?.fecha_inicio) return 'Fecha no definida';
+
+  const inicio = new Date(evento.value.fecha_inicio);
+  const fin = evento.value.fecha_fin ? new Date(evento.value.fecha_fin) : null;
+
+  if (isNaN(inicio.getTime())) return 'Fecha inválida';
+
+  const opcionesMes = { day: 'numeric', month: 'long' };
+  const anio = inicio.getFullYear();
+
+  // Caso: Mismo día o no hay fecha de fin
+  if (!fin || inicio.toDateString() === fin.toDateString()) {
+    return `${inicio.toLocaleDateString('es-SV', opcionesMes)} de ${anio}`;
+  }
+
+  // Caso: Diferentes días
+  const inicioStr = inicio.toLocaleDateString('es-SV', opcionesMes);
+  const finStr = fin.toLocaleDateString('es-SV', opcionesMes);
+  return `${inicioStr} — ${finStr}, ${anio}`;
+});
+
+const displayHora = computed(() => {
+  if (!evento.value?.fecha_inicio) return '--:--';
+
+  const inicio = new Date(evento.value.fecha_inicio);
+  const fin = evento.value.fecha_fin ? new Date(evento.value.fecha_fin) : null;
+
+  if (isNaN(inicio.getTime())) return '--:--';
+
+  const horaInicioStr = formatAMPM(inicio);
+
+  // Caso: Mismo día
+  if (!fin || inicio.toDateString() === fin.toDateString()) {
+    const horaFinStr = fin ? formatAMPM(fin) : '';
+    return horaFinStr ? `${horaInicioStr} — ${horaFinStr}` : horaInicioStr;
+  }
+
+  // Caso: Diferentes días (con abreviatura de día)
+  const horaFinStr = formatAMPM(fin);
+  return `${horaInicioStr} (${getDiaSemanaAbbr(inicio)}) — ${horaFinStr} (${getDiaSemanaAbbr(fin)})`;
+});
+
+// --- ORGANIZADOR ---
 const nombreOrganizador = computed(() => {
-  return evento.value?.alcaldia?.nombre_institucional || 'Organizador no disponible'
+  const alc = evento.value?.alcaldia
+  if (!alc) return 'Organizador no disponible'
+
+  // Si es un objeto, tomar nombre_institucional o nombre
+  if (typeof alc === 'object') {
+    return alc.nombre_institucional || alc.nombre || 'Organizador no disponible'
+  }
+
+  // Si es string, buscar en el catálogo de alcaldías
+  const found = configStore.alcaldias.find(a => a.clave === alc)
+  return found?.nombre || alc
+})
+
+const organizadorMunicipioNombre = computed(() => {
+  const clave = evento.value?.alcaldia?.municipio || (typeof evento.value?.alcaldia === 'string' ? evento.value.alcaldia : '')
+  if (!clave) return ''
+  const alc = configStore.alcaldias.find(a => a.clave === clave)
+  return alc?.nombre || clave
+})
+
+const organizadorDepartamentoNombre = computed(() => {
+  const clave = evento.value?.alcaldia?.departamento
+  if (!clave) return ''
+  const dep = configStore.departamentos.find(d => d.clave === clave)
+  return dep?.nombre || clave
 })
 
 const departamentoOrganizador = computed(() => {
-  const alcaldia = evento.value?.alcaldia
-  if (!alcaldia) return ''
-  return `${alcaldia.municipio || ''}, ${alcaldia.departamento || ''}`
+  const mun = organizadorMunicipioNombre.value
+  const dep = organizadorDepartamentoNombre.value
+  return `${mun || ''}${mun && dep ? ', ' : ''}${dep || ''}`
 })
 
 const organizadorLogo = computed(() => {
+  // Placeholder por defecto si hay error o no hay logo
   if (orgLogoError.value) return 'https://via.placeholder.com/40?text=Logo'
-  // Intentar acceder al logo de la alcaldía
   const alcId = evento.value?.alcaldia?._id
   if (alcId) {
     return couch.getImageUrl(`alc_${alcId}`, 'alc_logo.png')
@@ -335,7 +452,7 @@ const imagenPortada = computed(() => {
   return couch.getImageUrl(docId, evento.value.imagen_portada)
 })
 
-// Negocios cercanos (mock mientras se implementa búsqueda real)
+// Negocios cercanos
 const negociosCercanos = ref([])
 const cargarNegociosCercanos = async () => {
   if (!evento.value?.localizacion) return
@@ -349,7 +466,6 @@ const cargarNegociosCercanos = async () => {
     }))
   } catch (e) {
     console.error('Error cargando negocios cercanos', e)
-    // Datos de ejemplo basados en la imagen
     negociosCercanos.value = [
       { nombre: 'Pupusa El Surfista', descripcion: 'Las mejores pupusas de la costa', rating: 4.9 },
       { nombre: 'Café del Mar', descripcion: 'Café y postres con vista al mar', rating: 4.7 },
@@ -358,14 +474,12 @@ const cargarNegociosCercanos = async () => {
   }
 }
 
-// Función para navegar al detalle del negocio
 const irANegocio = (id) => {
   if (id) {
     router.push(`/negocio/${id}`)
   }
 }
 
-// Acciones
 const verMapa = () => {
   if (evento.value?.localizacion?.lat) {
     window.open(`https://www.openstreetmap.org/?mlat=${evento.value.localizacion.lat}&mlon=${evento.value.localizacion.lng}#map=16/${evento.value.localizacion.lat}/${evento.value.localizacion.lng}`)
@@ -386,12 +500,7 @@ const setRecordatorio = () => {
   $q.notify({ type: 'info', message: 'Funcionalidad en desarrollo: establecer recordatorio' })
 }
 
-const verImagen = (nombre) => {
-  const url = getImagenUrl(nombre)
-  window.open(url, '_blank')
-}
-
-// Agregar reseña (misma lógica original, adaptada)
+// Agregar reseña
 async function agregarResena({ calificacion, comentario }) {
   if (!auth.user || auth.rol !== 'usuario_final') return
   try {
@@ -405,13 +514,11 @@ async function agregarResena({ calificacion, comentario }) {
 
     evento.value.reseñas = evento.value.reseñas || []
     evento.value.reseñas.push(nuevaResena)
-    // Recalcular promedio
     const total = evento.value.reseñas.reduce((sum, r) => sum + r.calificacion, 0)
     evento.value.calificacion_promedio = total / evento.value.reseñas.length
 
     await couch.put(import.meta.env.VITE_DB_DATA, evento.value)
 
-    // Actualizar perfil del usuario
     const userDoc = await couch.get(import.meta.env.VITE_DB_DATA, auth.user._id)
     const detalle = userDoc.detalles?.detalle_usuario
     if (detalle) {
@@ -441,7 +548,7 @@ const getImagenUrl = (nombre) => {
   return couch.getImageUrl(docId, nombre)
 }
 
-// Cargar evento y configuraciones
+// Cargar evento
 async function cargarEvento() {
   try {
     const id = route.params.id

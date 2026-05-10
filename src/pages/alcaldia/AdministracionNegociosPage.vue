@@ -298,7 +298,6 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { useAuthStore } from 'src/stores/auth'
 import { useConfiguracionStore } from 'src/stores/configuracion'
@@ -306,7 +305,6 @@ import { alcaldiaAPI } from 'src/api/alcaldia'
 import { negocioAPI } from 'src/api/negocio'
 
 const $q = useQuasar()
-const router = useRouter()
 const auth = useAuthStore()
 const configStore = useConfiguracionStore()
 
