@@ -160,6 +160,10 @@
               <q-icon name="email" size="0.9rem" />
               <span class="adm-email">{{ neg.usuario_propietario.correo }}</span>
             </div>
+            <div class="adm-meta-row" v-if="neg.estado === 'suspendido' && neg.motivo_suspension">
+              <q-icon name="info" size="0.9rem" class="text-negative" />
+              <span class="text-negative">Motivo: {{ neg.motivo_suspension }}</span>
+            </div>
           </div>
 
           <div class="adm-card-actions">
@@ -440,28 +444,39 @@ function confirmarSuspender(neg) {
 }
 
 async function ejecutarSuspension() {
-  procesando.value = true
+  procesando.value = true;
   try {
     await negocioAPI.updateNegocio(negocioActivo.value._id, negocioActivo.value._rev, {
       estado: 'suspendido',
       motivo_suspension: motivoSuspension.value.trim() || null
-    })
-    const idx = negocios.value.findIndex(n => n._id === negocioActivo.value._id)
-    if (idx !== -1) negocios.value[idx] = { ...negocios.value[idx], estado: 'suspendido' }
-    dialogSuspender.value = false
-    $q.notify({ type: 'warning', icon: 'block', message: `"${negocioActivo.value.nombre_comercial}" suspendido.`, position: 'top-right', timeout: 3000 })
+    });
+    // actualizar localmente
+    const idx = negocios.value.findIndex(n => n._id === negocioActivo.value._id);
+    if (idx !== -1) {
+      negocios.value[idx] = {
+        ...negocios.value[idx],
+        estado: 'suspendido',
+        motivo_suspension: motivoSuspension.value.trim() || null
+      };
+    }
+    dialogSuspender.value = false;
+    $q.notify({ type: 'warning', icon: 'block', message: `"${negocioActivo.value.nombre_comercial}" suspendido.`, position: 'top-right' });
   } catch (e) {
-    $q.notify({ type: 'negative', message: 'Error al suspender: ' + e.message, position: 'top-right' })
+    $q.notify({ type: 'negative', message: 'Error al suspender: ' + e.message });
   } finally {
-    procesando.value = false
+    procesando.value = false;
   }
 }
 
 async function cambiarEstadoNegocio(neg, nuevoEstado) {
   try {
+    const updates = { estado: nuevoEstado };
+    if (nuevoEstado === 'activo') {
+      updates.motivoSuspension = null;   // limpia el motivo al reactivar
+    }
     await negocioAPI.updateNegocio(neg._id, neg._rev, { estado: nuevoEstado })
     const idx = negocios.value.findIndex(n => n._id === neg._id)
-    if (idx !== -1) negocios.value[idx] = { ...negocios.value[idx], estado: nuevoEstado }
+    if (idx !== -1) negocios.value[idx] = { ...negocios.value[idx], estado: nuevoEstado, motivo_suspension: null }
     $q.notify({ type: 'positive', icon: 'check_circle', message: `"${neg.nombre_comercial}" reactivado.`, position: 'top-right', timeout: 3000 })
   } catch (e) {
     $q.notify({ type: 'negative', message: 'Error: ' + e.message, position: 'top-right' })
