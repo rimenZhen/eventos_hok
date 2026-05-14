@@ -151,7 +151,7 @@
               icon="check_circle"
               label="Aprobar"
               class="sol-btn-aprobar"
-              @click="confirmarCambio(sol, 'aprobado')"
+              @click="confirmarAprobacion(sol)"
             />
             <q-btn
               unelevated
@@ -167,7 +167,7 @@
               icon="cancel"
               label="Rechazar"
               class="sol-btn-rechazar"
-              @click="confirmarCambio(sol, 'rechazado')"
+              @click="abrirRechazo(sol)"
             />
             <q-btn
               flat
@@ -183,37 +183,28 @@
       </transition-group>
     </div>
 
-    <q-dialog v-model="dialogConfirm" persistent>
+    <!-- Diálogo de confirmación para Aprobación -->
+    <q-dialog v-model="dialogAprobar" persistent>
       <q-card class="sol-dialog">
         <q-card-section class="sol-dialog-header">
-          <q-icon :name="dialogAccion === 'aprobado' ? 'check_circle' : 'cancel'" size="2rem" :class="dialogAccion === 'aprobado' ? 'text-positive' : 'text-negative'" />
-          <div class="sol-dialog-title">
-            {{ dialogAccion === 'aprobado' ? '¿Aprobar solicitud?' : '¿Rechazar solicitud?' }}
-          </div>
+          <q-icon name="check_circle" size="2rem" class="text-positive" />
+          <div class="sol-dialog-title">¿Aprobar solicitud?</div>
         </q-card-section>
         <q-card-section class="sol-dialog-body">
           <div class="sol-dialog-negocio">{{ dialogSol?.nombre_comercial }}</div>
           <div class="sol-dialog-sub">{{ dialogSol?.usuario_propietario?.nombres }} {{ dialogSol?.usuario_propietario?.apellidos }}</div>
-          <div v-if="dialogAccion === 'aprobado'" class="sol-dialog-info q-mt-sm">
+          <div class="sol-dialog-info q-mt-sm">
             El negocio pasará a <strong>Administración de Negocios</strong> y quedará activo en la plataforma.
-          </div>
-          <div v-else class="sol-dialog-info q-mt-sm">
-            El propietario será notificado del rechazo y podrá corregir y reenviar la solicitud.
           </div>
         </q-card-section>
         <q-card-actions align="right" class="q-pa-md q-pt-none">
           <q-btn flat label="Cancelar" v-close-popup class="sol-btn-cancel-dialog" />
-          <q-btn
-            unelevated
-            :label="dialogAccion === 'aprobado' ? 'Sí, aprobar' : 'Sí, rechazar'"
-            :class="dialogAccion === 'aprobado' ? 'sol-btn-aprobar' : 'sol-btn-rechazar'"
-            :loading="procesando"
-            @click="ejecutarCambio"
-          />
+          <q-btn unelevated label="Sí, aprobar" class="sol-btn-aprobar" :loading="procesando" @click="ejecutarAprobacion" />
         </q-card-actions>
       </q-card>
     </q-dialog>
 
+    <!-- Diálogo para Observación -->
     <q-dialog v-model="dialogObservacion" persistent>
       <q-card class="sol-dialog">
         <q-card-section class="sol-dialog-header">
@@ -232,6 +223,7 @@
             class="q-mt-md sol-textarea"
             counter
             maxlength="500"
+            :rules="[val => !!val.trim() || 'El motivo es obligatorio']"
           />
         </q-card-section>
         <q-card-actions align="right" class="q-pa-md q-pt-none">
@@ -249,6 +241,48 @@
       </q-card>
     </q-dialog>
 
+    <!-- Diálogo para Rechazo -->
+    <q-dialog v-model="dialogRechazo" persistent>
+      <q-card class="sol-dialog">
+        <q-card-section class="sol-dialog-header">
+          <q-icon name="cancel" size="2rem" class="text-negative" />
+          <div class="sol-dialog-title">Rechazar solicitud</div>
+        </q-card-section>
+        <q-card-section class="sol-dialog-body">
+          <div class="sol-dialog-negocio">{{ dialogSol?.nombre_comercial }}</div>
+          <div class="sol-dialog-sub">{{ dialogSol?.usuario_propietario?.nombres }} {{ dialogSol?.usuario_propietario?.apellidos }}</div>
+          <q-input
+            v-model="motivoRechazo"
+            type="textarea"
+            filled
+            label="Motivo del rechazo"
+            placeholder="Indica el motivo por el cual se rechaza esta solicitud..."
+            rows="4"
+            class="q-mt-md sol-textarea"
+            counter
+            maxlength="500"
+            :rules="[val => !!val.trim() || 'El motivo es obligatorio']"
+          />
+          <div class="sol-dialog-info q-mt-sm">
+            El propietario será notificado del rechazo y podrá corregir y reenviar la solicitud.
+          </div>
+        </q-card-section>
+        <q-card-actions align="right" class="q-pa-md q-pt-none">
+          <q-btn flat label="Cancelar" v-close-popup class="sol-btn-cancel-dialog" />
+          <q-btn
+            unelevated
+            label="Sí, rechazar"
+            icon="cancel"
+            class="sol-btn-rechazar"
+            :loading="procesando"
+            :disable="!motivoRechazo.trim()"
+            @click="ejecutarRechazo"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- Diálogo de Detalle -->
     <q-dialog v-model="dialogDetalle">
       <q-card class="sol-dialog sol-dialog-wide">
         <q-card-section class="sol-dialog-header">
@@ -316,8 +350,8 @@
           </div>
         </q-card-section>
         <q-card-actions align="right" class="q-pa-md q-pt-none">
-          <q-btn unelevated icon="check_circle" label="Aprobar" class="sol-btn-aprobar" @click="dialogDetalle = false; confirmarCambio(dialogSol, 'aprobado')" />
-          <q-btn unelevated icon="cancel" label="Rechazar" class="sol-btn-rechazar" @click="dialogDetalle = false; confirmarCambio(dialogSol, 'rechazado')" />
+          <q-btn unelevated icon="check_circle" label="Aprobar" class="sol-btn-aprobar" @click="dialogDetalle = false; confirmarAprobacion(dialogSol)" />
+          <q-btn unelevated icon="cancel" label="Rechazar" class="sol-btn-rechazar" @click="dialogDetalle = false; abrirRechazo(dialogSol)" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -343,40 +377,25 @@ const procesando = ref(false)
 const busqueda = ref('')
 const filtroDistrito = ref(null)
 
-const dialogConfirm = ref(false)
+const dialogAprobar = ref(false)
 const dialogObservacion = ref(false)
+const dialogRechazo = ref(false)
 const dialogDetalle = ref(false)
 const dialogSol = ref(null)
-const dialogAccion = ref('')
 const observacionTexto = ref('')
+const motivoRechazo = ref('')
 
 const getNombreDepartamento = (valor) => configStore.getDepartamentoNombre(valor)
 const getNombreDistrito = (valor) => configStore.getDistritoNombre(valor)
 
-/**
- * CORRECCIÓN: Función para procesar categorías
- * Resuelve el problema del objeto JSON y busca el color en el catálogo de configuración.
- */
 function getCategoriaInfo(cat) {
-  // Manejar si cat es un objeto {"label": "...", "value": "..."} o un string
   const clave = (typeof cat === 'object' && cat !== null) ? cat.value : cat
   const label = (typeof cat === 'object' && cat !== null) ? cat.label : cat
-
-  // Buscar en las categorías de negocios de la store (cargadas desde categorias.json)
   const encontrada = configStore.categoriasNegocios.find(item => item.clave === clave)
-
   if (encontrada) {
-    return {
-      nombre: encontrada.nombre,
-      color: encontrada.color
-    }
+    return { nombre: encontrada.nombre, color: encontrada.color }
   }
-
-  // Retorno por defecto si no se encuentra (Gris)
-  return {
-    nombre: label || cat || 'Sin categoría',
-    color: '#9ca3af'
-  }
+  return { nombre: label || cat || 'Sin categoría', color: '#9ca3af' }
 }
 
 const distritoOpciones = computed(() => {
@@ -397,13 +416,11 @@ const solicitudesFiltradas = computed(() => {
   return solicitudes.value.filter(sol => {
     const texto = busqueda.value.toLowerCase()
     const catData = getCategoriaInfo(sol.categoria)
-
     const coincideTexto = !busqueda.value ||
       (sol.nombre_comercial || '').toLowerCase().includes(texto) ||
-      (catData.nombre.toLowerCase().includes(texto)) ||
+      catData.nombre.toLowerCase().includes(texto) ||
       (`${sol.usuario_propietario?.nombres || ''} ${sol.usuario_propietario?.apellidos || ''}`).toLowerCase().includes(texto) ||
       (sol.usuario_propietario?.correo || '').toLowerCase().includes(texto)
-
     const coincideDistrito = !filtroDistrito.value || sol.distrito === filtroDistrito.value
     return coincideTexto && coincideDistrito
   })
@@ -432,10 +449,9 @@ function limpiarFiltros() {
   filtroDistrito.value = null
 }
 
-function confirmarCambio(sol, accion) {
+function confirmarAprobacion(sol) {
   dialogSol.value = sol
-  dialogAccion.value = accion
-  dialogConfirm.value = true
+  dialogAprobar.value = true
 }
 
 function abrirObservacion(sol) {
@@ -444,12 +460,18 @@ function abrirObservacion(sol) {
   dialogObservacion.value = true
 }
 
+function abrirRechazo(sol) {
+  dialogSol.value = sol
+  motivoRechazo.value = ''
+  dialogRechazo.value = true
+}
+
 function verDetalle(sol) {
   dialogSol.value = sol
   dialogDetalle.value = true
 }
 
-async function ejecutarCambio() {
+async function ejecutarAprobacion() {
   procesando.value = true
   try {
     const alcaldiaData = {
@@ -458,20 +480,22 @@ async function ejecutarCambio() {
       departamento: auth.user.detalles?.detalle_alcaldia?.departamento || '',
       municipio: auth.user.detalles?.detalle_alcaldia?.municipio || ''
     }
-    await alcaldiaAPI.cambiarEstadoSolicitud(dialogSol.value._id, dialogAccion.value, alcaldiaData)
+    await alcaldiaAPI.cambiarEstadoSolicitud(
+      dialogSol.value._id,
+      'aprobado',
+      alcaldiaData
+    )
     solicitudes.value = solicitudes.value.filter(s => s._id !== dialogSol.value._id)
-    dialogConfirm.value = false
+    dialogAprobar.value = false
     $q.notify({
-      type: dialogAccion.value === 'aprobado' ? 'positive' : 'negative',
-      icon: dialogAccion.value === 'aprobado' ? 'check_circle' : 'cancel',
-      message: dialogAccion.value === 'aprobado'
-        ? `"${dialogSol.value.nombre_comercial}" aprobado correctamente.`
-        : `Solicitud de "${dialogSol.value.nombre_comercial}" rechazada.`,
+      type: 'positive',
+      icon: 'check_circle',
+      message: `"${dialogSol.value.nombre_comercial}" aprobado correctamente.`,
       position: 'top-right',
       timeout: 3500
     })
   } catch (e) {
-    $q.notify({ type: 'negative', message: 'Error al cambiar estado: ' + e.message, position: 'top-right' })
+    $q.notify({ type: 'negative', message: 'Error al aprobar: ' + e.message, position: 'top-right' })
   } finally {
     procesando.value = false
   }
@@ -486,9 +510,12 @@ async function ejecutarObservacion() {
       departamento: auth.user.detalles?.detalle_alcaldia?.departamento || '',
       municipio: auth.user.detalles?.detalle_alcaldia?.municipio || ''
     }
-    await alcaldiaAPI.cambiarEstadoSolicitud(dialogSol.value._id, 'observacion', alcaldiaData, {
-      observacion: observacionTexto.value.trim()
-    })
+    await alcaldiaAPI.cambiarEstadoSolicitud(
+      dialogSol.value._id,
+      'observacion',
+      alcaldiaData,
+      { motivo: observacionTexto.value.trim() }
+    )
     solicitudes.value = solicitudes.value.filter(s => s._id !== dialogSol.value._id)
     dialogObservacion.value = false
     $q.notify({
@@ -505,12 +532,41 @@ async function ejecutarObservacion() {
   }
 }
 
+async function ejecutarRechazo() {
+  procesando.value = true
+  try {
+    const alcaldiaData = {
+      _id: auth.user._id,
+      nombre_institucional: auth.user.detalles?.detalle_alcaldia?.nombre_institucional || '',
+      departamento: auth.user.detalles?.detalle_alcaldia?.departamento || '',
+      municipio: auth.user.detalles?.detalle_alcaldia?.municipio || ''
+    }
+    await alcaldiaAPI.cambiarEstadoSolicitud(
+      dialogSol.value._id,
+      'rechazado',
+      alcaldiaData,
+      { motivo: motivoRechazo.value.trim() }
+    )
+    solicitudes.value = solicitudes.value.filter(s => s._id !== dialogSol.value._id)
+    dialogRechazo.value = false
+    $q.notify({
+      type: 'negative',
+      icon: 'cancel',
+      message: `Solicitud de "${dialogSol.value.nombre_comercial}" rechazada.`,
+      position: 'top-right',
+      timeout: 3500
+    })
+  } catch (e) {
+    $q.notify({ type: 'negative', message: 'Error al rechazar: ' + e.message, position: 'top-right' })
+  } finally {
+    procesando.value = false
+  }
+}
+
 async function cargarSolicitudes() {
   loading.value = true
   try {
-    // Asegurar que los catálogos (incluyendo colores de categorías) estén cargados
     if (configStore.departamentos.length === 0) await configStore.fetchCatalogos()
-
     const miAlcaldiaId = auth.user._id
     const miAlcaldiaNombre = auth.user.detalles?.detalle_alcaldia?.nombre_institucional || ''
     const miAlcaldiaMunicipio = auth.user.detalles?.detalle_alcaldia?.municipio || ''
@@ -526,16 +582,13 @@ async function cargarSolicitudes() {
     solicitudes.value = todas.filter(sol => {
       const destinoId = sol.alcaldia_destino?._id
       if (destinoId) return destinoId === miAlcaldiaId
-
       const destinoNombre = sol.alcaldia_destino?.nombre_institucional || ''
       if (destinoNombre) return normalize(destinoNombre) === normalize(miAlcaldiaNombre)
-
       const distritoClave = sol.distrito || sol.municipio
       if (distritoClave) {
         const alcaldiaDelDistrito = distritoAlcaldiaMap.get(distritoClave)
         return alcaldiaDelDistrito === miAlcaldiaMunicipio
       }
-
       return false
     })
   } catch (e) {
@@ -549,7 +602,7 @@ onMounted(cargarSolicitudes)
 </script>
 
 <style scoped>
-/* Los estilos se mantienen igual que en tu archivo original */
+/* Tus estilos existentes se mantienen igual (no se han modificado) */
 .sol-page {
   --sol-green: #22c55e;
   --sol-green-dark: #16a34a;

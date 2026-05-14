@@ -50,12 +50,19 @@ export const alcaldiaAPI = {
     return result.docs
   },
 
-  async cambiarEstadoSolicitud(negocioId, nuevoEstado, alcaldiaData) {
+  async cambiarEstadoSolicitud(negocioId, nuevoEstado, alcaldiaData, opciones = {}) {
     const negocioDoc = await couch.get(DB_NEGOCIOS, negocioId)
-
     const estadoNormalizado = nuevoEstado === 'rechazado' ? 'sin_solicitud' : nuevoEstado
     negocioDoc.estado_solicitud = estadoNormalizado
     negocioDoc.fue_rechazado = estadoNormalizado === 'sin_solicitud'
+
+    // 🔥 Guardar el motivo si existe
+    if (opciones.motivo) {
+      negocioDoc.motivo = opciones.motivo
+    } else if (nuevoEstado === 'observacion' || nuevoEstado === 'rechazado') {
+      // Si no se envió motivo, se puede dejar vacío o requerirlo
+      negocioDoc.motivo = opciones.observacion || null
+    }
 
     if (estadoNormalizado === 'aprobado') {
       negocioDoc.estado = 'activo'
@@ -70,26 +77,19 @@ export const alcaldiaAPI = {
 
     await couch.put(DB_NEGOCIOS, negocioDoc)
 
-    // Sincroniza el estado también en el perfil del usuario propietario
+    // Sincronizar con el usuario (también guardar el motivo)
     const userId = negocioDoc.usuario_propietario?._id
-    if (!userId) return
-    const userDoc = await couch.get(DB_USERS, userId)
-    userDoc.detalles = userDoc.detalles || {}
-    userDoc.detalles.detalle_negocio = userDoc.detalles.detalle_negocio || {}
-    userDoc.detalles.detalle_negocio.estado_solicitud = estadoNormalizado
-    userDoc.detalles.detalle_negocio.fue_rechazado = estadoNormalizado === 'sin_solicitud'
-
-    if (estadoNormalizado === 'aprobado') {
-      userDoc.detalles.detalle_negocio.alcaldia_destino = {
-        _id: alcaldiaData._id,
-        nombre_institucional: alcaldiaData.nombre_institucional,
-        departamento: alcaldiaData.departamento || '',
-        distrito: alcaldiaData.distrito || '',
-        municipio: alcaldiaData.municipio || ''
+    if (userId) {
+      const userDoc = await couch.get(DB_USERS, userId)
+      userDoc.detalles = userDoc.detalles || {}
+      userDoc.detalles.detalle_negocio = userDoc.detalles.detalle_negocio || {}
+      userDoc.detalles.detalle_negocio.estado_solicitud = estadoNormalizado
+      userDoc.detalles.detalle_negocio.fue_rechazado = estadoNormalizado === 'sin_solicitud'
+      if (negocioDoc.motivo) {
+        userDoc.detalles.detalle_negocio.motivo = negocioDoc.motivo
       }
+      await couch.put(DB_USERS, userDoc)
     }
-
-    await couch.put(DB_USERS, userDoc)
   },
 
   async createEvento(eventoData) {

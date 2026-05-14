@@ -126,7 +126,7 @@
           </q-item>
 
           <q-item
-            v-if="auth.isLoggedIn"
+            v-if="auth.isLoggedIn && auth.rol === 'usuario_final'"
             clickable
             to="/usuario/resenas"
             @click="leftDrawerOpen = false"
@@ -136,7 +136,6 @@
             </q-item-section>
             <q-item-section>Mis reseñas</q-item-section>
           </q-item>
-
           <template v-if="auth.rol === 'alcaldia'">
             <q-item clickable to="/alcaldia" @click="leftDrawerOpen = false">
               <q-item-section avatar>
